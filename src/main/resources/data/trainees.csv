@@ -1,0 +1,11 @@
+id,firstName,lastName,isActive,dateOfBirth,address
+1,John,Smith,true,1995-03-15,New York
+2,Michael,Johnson,true,1998-07-22,Los Angeles
+3,David,Williams,true,1992-11-05,Chicago
+4,James,Brown,false,1999-01-18,Houston
+5,Robert,Jones,true,1994-09-30,Phoenix
+6,Daniel,Miller,true,2001-04-12,Philadelphia
+7,William,Davis,false,1997-06-25,San Antonio
+8,Alexander,Wilson,true,1993-12-08,San Diego
+9,Matthew,Moore,true,2000-02-14,Dallas
+10,John,Smith,true,1996-10-20,Austin
