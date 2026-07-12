@@ -2,7 +2,7 @@ package com.hitruk.gym.crm.mapper;
 
 import com.hitruk.gym.crm.model.dto.TrainerDto;
 import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.TrainerSpecialization;
+import com.hitruk.gym.crm.model.entity.TrainingType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -10,6 +10,8 @@ public class TrainerMapper implements Mapper<Trainer, TrainerDto> {
 
     @Override
     public Trainer toEntity(TrainerDto dto) {
+        TrainingType specialization = dto.getSpecialization() == null ? null :
+                TrainingType.builder().name(dto.getSpecialization()).build();
         return Trainer.builder()
                 .id(dto.getId())
                 .firstName(dto.getFirstName())
@@ -17,7 +19,7 @@ public class TrainerMapper implements Mapper<Trainer, TrainerDto> {
                 .username(dto.getUsername())
                 .password(dto.getPassword())
                 .isActive(dto.getIsActive())
-                .specialization(TrainerSpecialization.valueOf(dto.getSpecialization()))
+                .specialization(specialization)
                 .build();
     }
 
@@ -30,7 +32,8 @@ public class TrainerMapper implements Mapper<Trainer, TrainerDto> {
                 .username(entity.getUsername())
                 .password(entity.getPassword())
                 .isActive(entity.getIsActive())
-                .specialization(entity.getSpecialization().name())
+                .specialization(entity.getSpecialization() == null ? null :
+                        entity.getSpecialization().getName())
                 .build();
     }
 }

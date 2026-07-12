@@ -1,23 +1,23 @@
 package com.hitruk.service;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
-import com.hitruk.gym.crm.mapper.Mapper;
-import com.hitruk.gym.crm.model.dao.Dao;
+import com.hitruk.gym.crm.mapper.TrainerMapper;
+import com.hitruk.gym.crm.model.dao.TraineeDao;
+import com.hitruk.gym.crm.model.dao.TrainerDao;
+import com.hitruk.gym.crm.model.dao.TrainingTypeDao;
 import com.hitruk.gym.crm.model.dto.TrainerDto;
 import com.hitruk.gym.crm.model.entity.Trainee;
 import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.TrainerSpecialization;
+import com.hitruk.gym.crm.model.entity.TrainingType;
 import com.hitruk.gym.crm.service.TrainerServiceImpl;
-import com.hitruk.gym.crm.storage.ProfileGenerator;
+import com.hitruk.gym.crm.util.ProfileGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,14 +29,13 @@ import static org.mockito.Mockito.*;
 class TrainerServiceImplTest {
 
     @Mock
-    private Dao<Long, Trainer> trainerDao;
-
+    private TrainerDao trainerDao;
     @Mock
-    private Dao<Long, Trainee> traineeDao;
-
+    private TraineeDao traineeDao;
     @Mock
-    private Mapper<Trainer, TrainerDto> trainerMapper;
-
+    private TrainingTypeDao trainingTypeDao;
+    @Mock
+    private TrainerMapper trainerMapper;
     @Mock
     private ProfileGenerator profileGenerator;
 
@@ -45,153 +44,155 @@ class TrainerServiceImplTest {
 
     private Trainer trainer;
     private TrainerDto trainerDto;
+    private TrainingType trainingType;
 
     @BeforeEach
     void setUp() {
+        trainingType = TrainingType.builder().id(1L).name("FITNESS").build();
         trainer = Trainer.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .username("Chris.Bumstead")
-                .password("pass123456")
-                .isActive(true)
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+                .id(1L).firstName("Chris").lastName("Bumstead")
+                .username("Chris.Bumstead").password("pass123456").isActive(true)
+                .specialization(trainingType).build();
 
         trainerDto = TrainerDto.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .username("Chris.Bumstead")
-                .password("pass123456")
-                .isActive(true)
-                .specialization("BODYBUILDING")
-                .build();
+                .id(1L).firstName("Chris").lastName("Bumstead")
+                .username("Chris.Bumstead").password("pass123456")
+                .isActive(true).specialization("FITNESS").build();
     }
 
     @Test
-    void findById_existingId_returnsDto() {
-        when(trainerDao.findById(1L)).thenReturn(Optional.of(trainer));
-        when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
-
-        TrainerDto result = service.findById(1L);
-
-        assertNotNull(result);
-        assertEquals("Chris.Bumstead", result.getUsername());
-        verify(trainerDao).findById(1L);
-    }
-
-    @Test
-    void findById_nonExistingId_throwsEntityNotFoundException() {
-        when(trainerDao.findById(99L)).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class, () -> service.findById(99L));
-    }
-
-    @Test
-    void create_setsUsernameAndPasswordAndActivatesEntity() {
-        TrainerDto inputDto = TrainerDto.builder()
-                .firstName("Arnold")
-                .lastName("Schwarzenegger")
-                .specialization("BODYBUILDING")
-                .build();
-        Trainer inputEntity = Trainer.builder()
-                .firstName("Arnold")
-                .lastName("Schwarzenegger")
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+    void create_buildsTrainerWithGeneratedCredentials() {
+        TrainerDto input = TrainerDto.builder()
+                .firstName("Arnold").lastName("Schwarzenegger").specialization("FITNESS").build();
 
         when(trainerDao.findAll()).thenReturn(List.of());
         when(traineeDao.findAll()).thenReturn(List.of());
-        when(trainerMapper.toEntity(inputDto)).thenReturn(inputEntity);
-        when(profileGenerator.generateUsername(eq("Arnold"), eq("Schwarzenegger"), anyCollection()))
+        when(profileGenerator.generateUsername("Arnold", "Schwarzenegger", List.of()))
                 .thenReturn("Arnold.Schwarzenegger");
         when(profileGenerator.generatePassword()).thenReturn("securePass1");
-        when(trainerDao.create(inputEntity)).thenReturn(trainer);
+        when(trainingTypeDao.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
+        when(trainerDao.save(any(Trainer.class))).thenReturn(trainer);
         when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
 
-        TrainerDto result = service.create(inputDto);
+        TrainerDto result = service.create(input);
 
         assertNotNull(result);
-        assertEquals("Arnold.Schwarzenegger", inputEntity.getUsername());
-        assertEquals("securePass1", inputEntity.getPassword());
-        assertTrue(inputEntity.getIsActive());
-        verify(profileGenerator).generateUsername(eq("Arnold"), eq("Schwarzenegger"), anyCollection());
-        verify(profileGenerator).generatePassword();
-        verify(trainerDao).create(inputEntity);
+        verify(trainerDao).save(argThat(t ->
+                "Arnold.Schwarzenegger".equals(t.getUsername()) &&
+                        "securePass1".equals(t.getPassword()) &&
+                        Boolean.TRUE.equals(t.getIsActive())
+        ));
     }
 
     @Test
-    void create_combinesTrainersAndTraineesForUniquenessCheck() {
-        Trainee existingTrainee = Trainee.builder().username("Chris.Bumstead").build();
-        TrainerDto inputDto = TrainerDto.builder()
-                .firstName("Chris").lastName("Bumstead").specialization("BODYBUILDING").build();
-        Trainer inputEntity = Trainer.builder()
-                .firstName("Chris").lastName("Bumstead").specialization(TrainerSpecialization.BODYBUILDING).build();
+    void create_collectsUsernamesFromBothCollections() {
+        Trainee existingTrainee = Trainee.builder().username("Existing.Trainee").build();
+
+        TrainerDto input = TrainerDto.builder()
+                .firstName("Chris").lastName("Bumstead").specialization("FITNESS").build();
 
         when(trainerDao.findAll()).thenReturn(List.of());
         when(traineeDao.findAll()).thenReturn(List.of(existingTrainee));
-        when(trainerMapper.toEntity(inputDto)).thenReturn(inputEntity);
-        when(profileGenerator.generateUsername(eq("Chris"), eq("Bumstead"), anyCollection()))
+        when(profileGenerator.generateUsername(eq("Chris"), eq("Bumstead"), anyList()))
                 .thenReturn("Chris.Bumstead1");
         when(profileGenerator.generatePassword()).thenReturn("pass");
-        when(trainerDao.create(inputEntity)).thenReturn(trainer);
+        when(trainingTypeDao.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
+        when(trainerDao.save(any())).thenReturn(trainer);
         when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
 
-        service.create(inputDto);
+        service.create(input);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Collection<? extends com.hitruk.gym.crm.model.entity.User>> captor =
-                ArgumentCaptor.forClass(Collection.class);
-        verify(profileGenerator).generateUsername(eq("Chris"), eq("Bumstead"), captor.capture());
-        assertTrue(captor.getValue().contains(existingTrainee));
+        verify(profileGenerator).generateUsername(eq("Chris"), eq("Bumstead"),
+                argThat(list -> list.contains("Existing.Trainee")));
     }
 
     @Test
-    void update_existingTrainer_returnsUpdatedDto() {
-        when(trainerDao.findById(1L)).thenReturn(Optional.of(trainer));
-        when(trainerDao.update(trainer)).thenReturn(trainer);
-        when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
+    void create_unknownSpecialization_throwsEntityNotFoundException() {
+        TrainerDto input = TrainerDto.builder()
+                .firstName("A").lastName("B").specialization("UNKNOWN").build();
 
-        TrainerDto result = service.update(trainerDto);
+        when(trainerDao.findAll()).thenReturn(List.of());
+        when(traineeDao.findAll()).thenReturn(List.of());
+        when(profileGenerator.generateUsername(any(), any(), anyList())).thenReturn("A.B");
+        when(profileGenerator.generatePassword()).thenReturn("pass");
+        when(trainingTypeDao.findByName("UNKNOWN")).thenReturn(Optional.empty());
 
-        assertNotNull(result);
-        verify(trainerDao).update(trainer);
+        assertThrows(EntityNotFoundException.class, () -> service.create(input));
     }
 
     @Test
-    void update_existingTrainer_updatesAllFields() {
+    void matchCredentials_delegatesToDao() {
+        when(trainerDao.matchCredentials("Chris.Bumstead", "pass123456")).thenReturn(true);
+
+        assertTrue(service.matchCredentials("Chris.Bumstead", "pass123456"));
+    }
+
+    @Test
+    void findByUsername_existing_returnsDto() {
+        when(trainerDao.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
+
+        TrainerDto result = service.findByUsername("Chris.Bumstead");
+
+        assertEquals("Chris.Bumstead", result.getUsername());
+    }
+
+    @Test
+    void findByUsername_notFound_throwsEntityNotFoundException() {
+        when(trainerDao.findByUsername("Unknown")).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> service.findByUsername("Unknown"));
+    }
+
+    @Test
+    void changePassword_validCredentials_delegatesChange() {
+        when(trainerDao.matchCredentials("Chris.Bumstead", "pass123456")).thenReturn(true);
+
+        service.changePassword("Chris.Bumstead", "pass123456", "newPass99");
+
+        verify(trainerDao).changePassword("Chris.Bumstead", "newPass99");
+    }
+
+    @Test
+    void changePassword_invalidCredentials_throwsException() {
+        when(trainerDao.matchCredentials("Chris.Bumstead", "wrong")).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class,
+                () -> service.changePassword("Chris.Bumstead", "wrong", "newPass"));
+        verify(trainerDao, never()).changePassword(any(), any());
+    }
+
+    @Test
+    void update_existingTrainer_updatesFields() {
         TrainerDto updateDto = TrainerDto.builder()
-                .id(1L)
-                .firstName("Updated")
-                .lastName("Trainer")
-                .username("Updated.Trainer")
-                .password("newpass")
-                .isActive(false)
-                .specialization("FITNESS")
-                .build();
+                .username("Chris.Bumstead").firstName("Christie").lastName("B")
+                .isActive(false).specialization("FITNESS").build();
 
-        when(trainerDao.findById(1L)).thenReturn(Optional.of(trainer));
+        when(trainerDao.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(trainingTypeDao.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
         when(trainerDao.update(trainer)).thenReturn(trainer);
         when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
 
         service.update(updateDto);
 
-        assertEquals("Updated", trainer.getFirstName());
-        assertEquals("Trainer", trainer.getLastName());
-        assertEquals("Updated.Trainer", trainer.getUsername());
-        assertEquals("newpass", trainer.getPassword());
+        assertEquals("Christie", trainer.getFirstName());
+        assertEquals("B", trainer.getLastName());
         assertFalse(trainer.getIsActive());
-        assertEquals(TrainerSpecialization.FITNESS, trainer.getSpecialization());
     }
 
     @Test
-    void update_nonExistingTrainer_throwsEntityNotFoundException() {
-        when(trainerDao.findById(99L)).thenReturn(Optional.empty());
-        TrainerDto dto = TrainerDto.builder().id(99L).specialization("FITNESS").build();
+    void update_notFound_throwsEntityNotFoundException() {
+        when(trainerDao.findByUsername("Unknown")).thenReturn(Optional.empty());
+        TrainerDto dto = TrainerDto.builder().username("Unknown").build();
 
         assertThrows(EntityNotFoundException.class, () -> service.update(dto));
-        verify(trainerDao, never()).update(any());
+    }
+
+    @Test
+    void setActive_delegatesToDao() {
+        service.setActive("Chris.Bumstead", false);
+
+        verify(trainerDao).setActive("Chris.Bumstead", false);
     }
 
     @Test

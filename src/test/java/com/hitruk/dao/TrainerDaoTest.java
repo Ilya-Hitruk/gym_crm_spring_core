@@ -1,13 +1,14 @@
 package com.hitruk.dao;
 
-import com.hitruk.gym.crm.model.dao.TrainerDao;
+import com.hitruk.gym.crm.model.dao.impl.TrainerDaoImpl;
 import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.TrainerSpecialization;
-import com.hitruk.gym.crm.storage.TrainerStorage;
+import com.hitruk.gym.crm.model.entity.TrainingType;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.query.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -15,89 +16,106 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class TrainerDaoTest {
 
     @Mock
-    private TrainerStorage trainerStorage;
+    private SessionFactory sessionFactory;
+    @Mock
+    private Session session;
+    @Mock
+    @SuppressWarnings("rawtypes")
+    private Query query;
 
-    @InjectMocks
-    private TrainerDao dao;
-
+    private TrainerDaoImpl dao;
     private Trainer trainer;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
+        when(sessionFactory.getCurrentSession()).thenReturn(session);
+        dao = new TrainerDaoImpl(sessionFactory);
+
+        TrainingType type = TrainingType.builder().id(1L).name("FITNESS").build();
         trainer = Trainer.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+                .id(1L).firstName("Chris").lastName("Bumstead")
+                .username("Chris.Bumstead").password("pass").isActive(true)
+                .specialization(type).build();
     }
 
     @Test
-    void findById_existing_returnsNonEmpty() {
-        when(trainerStorage.findById(1L)).thenReturn(trainer);
+    void save_persistsEntity() {
+        dao.save(trainer);
+        verify(session).persist(trainer);
+    }
 
-        Optional<Trainer> result = dao.findById(1L);
+    @Test
+    @SuppressWarnings("unchecked")
+    void findByUsername_found_returnsOptional() {
+        when(session.createQuery(anyString(), eq(Trainer.class))).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainer));
+
+        Optional<Trainer> result = dao.findByUsername("Chris.Bumstead");
 
         assertTrue(result.isPresent());
-        assertEquals(1L, result.get().getId());
-        verify(trainerStorage).findById(1L);
+        assertEquals("Chris.Bumstead", result.get().getUsername());
     }
 
     @Test
-    void findById_missing_returnsEmpty() {
-        when(trainerStorage.findById(99L)).thenReturn(null);
+    @SuppressWarnings("unchecked")
+    void findByUsername_notFound_returnsEmpty() {
+        when(session.createQuery(anyString(), eq(Trainer.class))).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.empty());
 
-        assertTrue(dao.findById(99L).isEmpty());
+        Optional<Trainer> result = dao.findByUsername("Unknown");
+
+        assertTrue(result.isEmpty());
     }
 
     @Test
-    void findAll_delegatesToStorage() {
-        when(trainerStorage.findAll()).thenReturn(List.of(trainer));
-
-        List<Trainer> result = dao.findAll();
-
-        assertEquals(1, result.size());
-        verify(trainerStorage).findAll();
-    }
-
-    @Test
-    void create_delegatesToStorage() {
-        when(trainerStorage.create(trainer)).thenReturn(trainer);
-
-        Trainer result = dao.create(trainer);
-
-        assertSame(trainer, result);
-        verify(trainerStorage).create(trainer);
-    }
-
-    @Test
-    void update_delegatesToStorageWithEntityId() {
-        when(trainerStorage.update(1L, trainer)).thenReturn(trainer);
+    void update_mergesEntity() {
+        when(session.merge(trainer)).thenReturn(trainer);
 
         Trainer result = dao.update(trainer);
 
         assertSame(trainer, result);
-        verify(trainerStorage).update(1L, trainer);
     }
 
     @Test
-    void delete_existing_returnsTrue() {
-        when(trainerStorage.delete(1L)).thenReturn(true);
+    @SuppressWarnings("unchecked")
+    void findAll_returnsAllTrainers() {
+        when(session.createQuery(anyString(), eq(Trainer.class))).thenReturn(query);
+        when(query.list()).thenReturn(List.of(trainer));
 
-        assertTrue(dao.delete(1L));
+        List<Trainer> result = dao.findAll();
+
+        assertEquals(1, result.size());
     }
 
     @Test
-    void delete_missing_returnsFalse() {
-        when(trainerStorage.delete(99L)).thenReturn(false);
+    @SuppressWarnings("unchecked")
+    void matchCredentials_validCredentials_returnsTrue() {
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.setParameter(eq("username"), any())).thenReturn(query);
+        when(query.setParameter(eq("password"), any())).thenReturn(query);
+        when(query.uniqueResult()).thenReturn(1L);
 
-        assertFalse(dao.delete(99L));
+        assertTrue(dao.matchCredentials("Chris.Bumstead", "pass"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void matchCredentials_invalidCredentials_returnsFalse() {
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.setParameter(eq("username"), any())).thenReturn(query);
+        when(query.setParameter(eq("password"), any())).thenReturn(query);
+        when(query.uniqueResult()).thenReturn(0L);
+
+        assertFalse(dao.matchCredentials("Chris.Bumstead", "wrong"));
     }
 }

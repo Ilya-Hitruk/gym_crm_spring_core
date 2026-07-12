@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -20,4 +21,5 @@ public class TraineeDto {
     private Boolean isActive;
     private LocalDate dateOfBirth;
     private String address;
+    private List<String> trainerUsernames;
 }

@@ -12,30 +12,83 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GymFacadeTest {
 
-    @Mock
-    private TraineeService traineeService;
-
-    @Mock
-    private TrainerService trainerService;
-
-    @Mock
-    private TrainingService trainingService;
+    @Mock private TraineeService traineeService;
+    @Mock private TrainerService trainerService;
+    @Mock private TrainingService trainingService;
 
     private GymFacade facade;
 
     @BeforeEach
     void setUp() {
         facade = new GymFacade(traineeService, trainerService, trainingService);
+    }
+
+    @Test
+    void createTrainer_delegatesToTrainerService() {
+        TrainerDto dto = TrainerDto.builder().firstName("Chris").specialization("FITNESS").build();
+        TrainerDto created = TrainerDto.builder().id(1L).username("Chris.Bumstead").build();
+        when(trainerService.create(dto)).thenReturn(created);
+
+        TrainerDto result = facade.createTrainer(dto);
+
+        assertEquals(1L, result.getId());
+        verify(trainerService).create(dto);
+    }
+
+    @Test
+    void trainerMatchCredentials_delegatesAndReturnsResult() {
+        when(trainerService.matchCredentials("Chris.Bumstead", "pass")).thenReturn(true);
+
+        assertTrue(facade.trainerMatchCredentials("Chris.Bumstead", "pass"));
+        verify(trainerService).matchCredentials("Chris.Bumstead", "pass");
+    }
+
+    @Test
+    void getTrainerByUsername_delegatesToTrainerService() {
+        TrainerDto dto = TrainerDto.builder().username("Chris.Bumstead").build();
+        when(trainerService.findByUsername("Chris.Bumstead")).thenReturn(dto);
+
+        assertEquals("Chris.Bumstead", facade.getTrainerByUsername("Chris.Bumstead").getUsername());
+    }
+
+    @Test
+    void changeTrainerPassword_delegatesToTrainerService() {
+        facade.changeTrainerPassword("Chris.Bumstead", "old", "new");
+
+        verify(trainerService).changePassword("Chris.Bumstead", "old", "new");
+    }
+
+    @Test
+    void updateTrainer_delegatesToTrainerService() {
+        TrainerDto dto = TrainerDto.builder().username("Chris.Bumstead").specialization("FITNESS").build();
+        when(trainerService.update(dto)).thenReturn(dto);
+
+        facade.updateTrainer(dto);
+
+        verify(trainerService).update(dto);
+    }
+
+    @Test
+    void setTrainerActive_delegatesToTrainerService() {
+        facade.setTrainerActive("Chris.Bumstead", false);
+
+        verify(trainerService).setActive("Chris.Bumstead", false);
+    }
+
+    @Test
+    void getAllTrainers_delegatesToTrainerService() {
+        when(trainerService.findAll()).thenReturn(List.of(TrainerDto.builder().build()));
+
+        assertEquals(1, facade.getAllTrainers().size());
+        verify(trainerService).findAll();
     }
 
     @Test
@@ -51,8 +104,30 @@ class GymFacadeTest {
     }
 
     @Test
+    void traineeMatchCredentials_delegatesAndReturnsResult() {
+        when(traineeService.matchCredentials("Jane.Doe", "pass")).thenReturn(true);
+
+        assertTrue(facade.traineeMatchCredentials("Jane.Doe", "pass"));
+    }
+
+    @Test
+    void getTraineeByUsername_delegatesToTraineeService() {
+        TraineeDto dto = TraineeDto.builder().username("Jane.Doe").build();
+        when(traineeService.findByUsername("Jane.Doe")).thenReturn(dto);
+
+        assertEquals("Jane.Doe", facade.getTraineeByUsername("Jane.Doe").getUsername());
+    }
+
+    @Test
+    void changeTraineePassword_delegatesToTraineeService() {
+        facade.changeTraineePassword("Jane.Doe", "old", "new");
+
+        verify(traineeService).changePassword("Jane.Doe", "old", "new");
+    }
+
+    @Test
     void updateTrainee_delegatesToTraineeService() {
-        TraineeDto dto = TraineeDto.builder().id(1L).firstName("Updated").build();
+        TraineeDto dto = TraineeDto.builder().username("Jane.Doe").build();
         when(traineeService.update(dto)).thenReturn(dto);
 
         facade.updateTrainee(dto);
@@ -61,78 +136,45 @@ class GymFacadeTest {
     }
 
     @Test
-    void deleteTrainee_existingId_returnsTrue() {
-        when(traineeService.delete(1L)).thenReturn(true);
+    void setTraineeActive_delegatesToTraineeService() {
+        facade.setTraineeActive("Jane.Doe", true);
 
-        assertTrue(facade.deleteTrainee(1L));
-        verify(traineeService).delete(1L);
+        verify(traineeService).setActive("Jane.Doe", true);
     }
 
     @Test
-    void deleteTrainee_nonExistingId_returnsFalse() {
-        when(traineeService.delete(99L)).thenReturn(false);
+    void deleteTrainee_delegatesToTraineeService() {
+        facade.deleteTrainee("Jane.Doe");
 
-        assertFalse(facade.deleteTrainee(99L));
+        verify(traineeService).deleteByUsername("Jane.Doe");
     }
 
     @Test
-    void getTrainee_delegatesToTraineeService() {
-        TraineeDto dto = TraineeDto.builder().id(1L).build();
-        when(traineeService.findById(1L)).thenReturn(dto);
+    void getTraineeTrainings_delegatesToTraineeService() {
+        when(traineeService.getTrainings("Jane.Doe", null, null, null, null))
+                .thenReturn(List.of(TrainingDto.builder().build()));
 
-        TraineeDto result = facade.getTrainee(1L);
-
-        assertEquals(1L, result.getId());
-        verify(traineeService).findById(1L);
+        assertEquals(1, facade.getTraineeTrainings("Jane.Doe", null, null, null, null).size());
     }
 
     @Test
-    void getAllTrainees_delegatesToTraineeService() {
-        when(traineeService.findAll()).thenReturn(List.of(TraineeDto.builder().build()));
+    void getUnassignedTrainers_delegatesToTraineeService() {
+        when(traineeService.getUnassignedTrainers("Jane.Doe"))
+                .thenReturn(List.of(TrainerDto.builder().build()));
 
-        List<TraineeDto> result = facade.getAllTrainees();
+        assertEquals(1, facade.getUnassignedTrainers("Jane.Doe").size());
+    }
+
+    @Test
+    void updateTraineeTrainers_delegatesToTraineeService() {
+        List<String> usernames = List.of("Chris.Bumstead");
+        when(traineeService.updateTrainers("Jane.Doe", usernames))
+                .thenReturn(List.of(TrainerDto.builder().username("Chris.Bumstead").build()));
+
+        List<TrainerDto> result = facade.updateTraineeTrainers("Jane.Doe", usernames);
 
         assertEquals(1, result.size());
-        verify(traineeService).findAll();
-    }
-
-    @Test
-    void createTrainer_delegatesToTrainerService() {
-        TrainerDto dto = TrainerDto.builder().firstName("Chris").lastName("Bumstead").specialization("BODYBUILDING").build();
-        TrainerDto created = TrainerDto.builder().id(1L).username("Chris.Bumstead").build();
-        when(trainerService.create(dto)).thenReturn(created);
-
-        TrainerDto result = facade.createTrainer(dto);
-
-        assertEquals(1L, result.getId());
-        verify(trainerService).create(dto);
-    }
-
-    @Test
-    void updateTrainer_delegatesToTrainerService() {
-        TrainerDto dto = TrainerDto.builder().id(1L).specialization("FITNESS").build();
-        when(trainerService.update(dto)).thenReturn(dto);
-
-        facade.updateTrainer(dto);
-
-        verify(trainerService).update(dto);
-    }
-
-    @Test
-    void getTrainer_delegatesToTrainerService() {
-        TrainerDto dto = TrainerDto.builder().id(1L).build();
-        when(trainerService.findById(1L)).thenReturn(dto);
-
-        assertEquals(1L, facade.getTrainer(1L).getId());
-        verify(trainerService).findById(1L);
-    }
-
-    @Test
-    void getAllTrainers_delegatesToTrainerService() {
-        when(trainerService.findAll()).thenReturn(List.of(TrainerDto.builder().build()));
-
-        assertEquals(1, facade.getAllTrainers().size());
-        verify(trainerService).findAll();
+        verify(traineeService).updateTrainers("Jane.Doe", usernames);
     }
 
     @Test
@@ -145,22 +187,5 @@ class GymFacadeTest {
 
         assertEquals(1L, result.getId());
         verify(trainingService).create(dto);
-    }
-
-    @Test
-    void getTraining_delegatesToTrainingService() {
-        TrainingDto dto = TrainingDto.builder().id(1L).name("Cardio").build();
-        when(trainingService.findById(1L)).thenReturn(dto);
-
-        assertEquals("Cardio", facade.getTraining(1L).getName());
-        verify(trainingService).findById(1L);
-    }
-
-    @Test
-    void getAllTrainings_delegatesToTrainingService() {
-        when(trainingService.findAll()).thenReturn(List.of(TrainingDto.builder().build()));
-
-        assertEquals(1, facade.getAllTrainings().size());
-        verify(trainingService).findAll();
     }
 }
