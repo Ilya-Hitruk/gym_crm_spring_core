@@ -1,6 +1,6 @@
-package com.hitruk.gym.crm.model.dao.impl;
+package com.hitruk.gym.crm.repository.impl;
 
-import com.hitruk.gym.crm.model.dao.TrainingTypeDao;
+import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.model.entity.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
-public class TrainingTypeDaoImpl implements TrainingTypeDao {
+public class TrainingTypeRepositoryImpl implements TrainingTypeRepository {
     private final SessionFactory sessionFactory;
 
     private Session session() {

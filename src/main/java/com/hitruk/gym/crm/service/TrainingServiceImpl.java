@@ -2,10 +2,10 @@ package com.hitruk.gym.crm.service;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.mapper.TrainingMapper;
-import com.hitruk.gym.crm.model.dao.TraineeDao;
-import com.hitruk.gym.crm.model.dao.TrainerDao;
-import com.hitruk.gym.crm.model.dao.TrainingDao;
-import com.hitruk.gym.crm.model.dao.TrainingTypeDao;
+import com.hitruk.gym.crm.repository.TraineeRepository;
+import com.hitruk.gym.crm.repository.TrainerRepository;
+import com.hitruk.gym.crm.repository.TrainingRepository;
+import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.model.dto.TrainingDto;
 import com.hitruk.gym.crm.model.entity.Trainee;
 import com.hitruk.gym.crm.model.entity.Trainer;
@@ -21,23 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @RequiredArgsConstructor
 public class TrainingServiceImpl implements TrainingService {
-    private final TrainingDao trainingDao;
-    private final TraineeDao traineeDao;
-    private final TrainerDao trainerDao;
-    private final TrainingTypeDao trainingTypeDao;
+    private final TrainingRepository trainingRepository;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final TrainingMapper trainingMapper;
 
     @Override
     public TrainingDto create(TrainingDto dto) {
         log.info("Creating training: name={}", dto.getName());
 
-        Trainee trainee = traineeDao.findByUsername(dto.getTraineeUsername())
+        Trainee trainee = traineeRepository.findByUsername(dto.getTraineeUsername())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getTraineeUsername()));
 
-        Trainer trainer = trainerDao.findByUsername(dto.getTrainerUsername())
+        Trainer trainer = trainerRepository.findByUsername(dto.getTrainerUsername())
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + dto.getTrainerUsername()));
 
-        TrainingType type = trainingTypeDao.findByName(dto.getTrainingType())
+        TrainingType type = trainingTypeRepository.findByName(dto.getTrainingType())
                 .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + dto.getTrainingType()));
 
         Training training = Training.builder()
@@ -49,7 +49,7 @@ public class TrainingServiceImpl implements TrainingService {
                 .duration(dto.getDuration())
                 .build();
 
-        Training saved = trainingDao.save(training);
+        Training saved = trainingRepository.save(training);
         log.info("Training created: id={}, name={}", saved.getId(), saved.getName());
         return trainingMapper.toDto(saved);
     }

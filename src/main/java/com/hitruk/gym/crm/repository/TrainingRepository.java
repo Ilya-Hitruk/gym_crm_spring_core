@@ -1,7 +1,7 @@
-package com.hitruk.gym.crm.model.dao;
+package com.hitruk.gym.crm.repository;
 
 import com.hitruk.gym.crm.model.entity.Training;
 
-public interface TrainingDao {
+public interface TrainingRepository {
     Training save(Training training);
 }

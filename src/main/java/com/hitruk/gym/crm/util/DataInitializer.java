@@ -1,6 +1,6 @@
 package com.hitruk.gym.crm.util;
 
-import com.hitruk.gym.crm.model.dao.TrainingTypeDao;
+import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.model.entity.TrainingType;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class DataInitializer {
-    private final TrainingTypeDao trainingTypeDao;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final PlatformTransactionManager transactionManager;
 
     @Autowired
-    public DataInitializer(TrainingTypeDao trainingTypeDao,
+    public DataInitializer(TrainingTypeRepository trainingTypeRepository,
                            PlatformTransactionManager transactionManager) {
-        this.trainingTypeDao = trainingTypeDao;
+        this.trainingTypeRepository = trainingTypeRepository;
         this.transactionManager = transactionManager;
     }
 
@@ -31,13 +31,13 @@ public class DataInitializer {
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate.execute(status -> {
             List<String> defaults = List.of("FITNESS", "YOGA", "STRENGTH", "CARDIO");
-            Set<String> existing = trainingTypeDao.findAll().stream()
+            Set<String> existing = trainingTypeRepository.findAll().stream()
                     .map(TrainingType::getName)
                     .collect(Collectors.toSet());
             defaults.stream()
                     .filter(name -> !existing.contains(name))
                     .map(name -> TrainingType.builder().name(name).build())
-                    .forEach(trainingTypeDao::save);
+                    .forEach(trainingTypeRepository::save);
             log.info("Training types initialized");
             return null;
         });

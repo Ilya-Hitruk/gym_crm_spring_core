@@ -1,7 +1,7 @@
-package com.hitruk.gym.crm.model.dao.impl;
+package com.hitruk.gym.crm.repository.impl;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
-import com.hitruk.gym.crm.model.dao.TrainerDao;
+import com.hitruk.gym.crm.repository.TrainerRepository;
 import com.hitruk.gym.crm.model.entity.Trainer;
 import com.hitruk.gym.crm.model.entity.Training;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import java.util.*;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
-public class TrainerDaoImpl implements TrainerDao {
+public class TrainerRepositoryImpl implements TrainerRepository {
     private final SessionFactory sessionFactory;
 
     private Session session() {

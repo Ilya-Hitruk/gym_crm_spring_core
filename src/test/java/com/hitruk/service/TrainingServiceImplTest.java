@@ -2,10 +2,10 @@ package com.hitruk.service;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.mapper.TrainingMapper;
-import com.hitruk.gym.crm.model.dao.TraineeDao;
-import com.hitruk.gym.crm.model.dao.TrainerDao;
-import com.hitruk.gym.crm.model.dao.TrainingDao;
-import com.hitruk.gym.crm.model.dao.TrainingTypeDao;
+import com.hitruk.gym.crm.repository.TraineeRepository;
+import com.hitruk.gym.crm.repository.TrainerRepository;
+import com.hitruk.gym.crm.repository.TrainingRepository;
+import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.model.dto.TrainingDto;
 import com.hitruk.gym.crm.model.entity.*;
 import com.hitruk.gym.crm.service.TrainingServiceImpl;
@@ -28,13 +28,13 @@ import static org.mockito.Mockito.*;
 class TrainingServiceImplTest {
 
     @Mock
-    private TrainingDao trainingDao;
+    private TrainingRepository trainingRepository;
     @Mock
-    private TraineeDao traineeDao;
+    private TraineeRepository traineeRepository;
     @Mock
-    private TrainerDao trainerDao;
+    private TrainerRepository trainerRepository;
     @Mock
-    private TrainingTypeDao trainingTypeDao;
+    private TrainingTypeRepository trainingTypeRepository;
     @Mock
     private TrainingMapper trainingMapper;
 
@@ -71,17 +71,17 @@ class TrainingServiceImplTest {
                 .name("Morning Lift").trainingType("FITNESS")
                 .date(LocalDate.of(2024, Month.JANUARY, 15)).duration(60).build();
 
-        when(traineeDao.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
-        when(trainingTypeDao.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
-        when(trainingDao.save(any(Training.class))).thenReturn(training);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(trainingTypeRepository.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
+        when(trainingRepository.save(any(Training.class))).thenReturn(training);
         when(trainingMapper.toDto(training)).thenReturn(trainingDto);
 
         TrainingDto result = service.create(input);
 
         assertNotNull(result);
         assertEquals("Morning Lift", result.getName());
-        verify(trainingDao).save(argThat(t ->
+        verify(trainingRepository).save(argThat(t ->
                 t.getTrainee() == trainee &&
                         t.getTrainer() == trainer &&
                         t.getType() == trainingType
@@ -94,10 +94,10 @@ class TrainingServiceImplTest {
                 .traineeUsername("Unknown").trainerUsername("Chris.Bumstead")
                 .trainingType("FITNESS").build();
 
-        when(traineeDao.findByUsername("Unknown")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("Unknown")).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> service.create(input));
-        verify(trainingDao, never()).save(any());
+        verify(trainingRepository, never()).save(any());
     }
 
     @Test
@@ -106,11 +106,11 @@ class TrainingServiceImplTest {
                 .traineeUsername("John.Smith").trainerUsername("Unknown")
                 .trainingType("FITNESS").build();
 
-        when(traineeDao.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findByUsername("Unknown")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername("Unknown")).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> service.create(input));
-        verify(trainingDao, never()).save(any());
+        verify(trainingRepository, never()).save(any());
     }
 
     @Test
@@ -119,11 +119,11 @@ class TrainingServiceImplTest {
                 .traineeUsername("John.Smith").trainerUsername("Chris.Bumstead")
                 .trainingType("UNKNOWN").build();
 
-        when(traineeDao.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
-        when(trainerDao.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
-        when(trainingTypeDao.findByName("UNKNOWN")).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(trainingTypeRepository.findByName("UNKNOWN")).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> service.create(input));
-        verify(trainingDao, never()).save(any());
+        verify(trainingRepository, never()).save(any());
     }
 }

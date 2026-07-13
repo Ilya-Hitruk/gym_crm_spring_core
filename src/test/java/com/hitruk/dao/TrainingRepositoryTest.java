@@ -1,6 +1,6 @@
 package com.hitruk.dao;
 
-import com.hitruk.gym.crm.model.dao.impl.TrainingDaoImpl;
+import com.hitruk.gym.crm.repository.impl.TrainingRepositoryImpl;
 import com.hitruk.gym.crm.model.entity.*;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -17,20 +17,20 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TrainingDaoTest {
+class TrainingRepositoryTest {
 
     @Mock
     private SessionFactory sessionFactory;
     @Mock
     private Session session;
 
-    private TrainingDaoImpl dao;
+    private TrainingRepositoryImpl dao;
     private Training training;
 
     @BeforeEach
     void setUp() {
         when(sessionFactory.getCurrentSession()).thenReturn(session);
-        dao = new TrainingDaoImpl(sessionFactory);
+        dao = new TrainingRepositoryImpl(sessionFactory);
 
         TrainingType type = TrainingType.builder().id(1L).name("FITNESS").build();
         Trainee trainee = Trainee.builder().id(1L).username("John.Smith").build();

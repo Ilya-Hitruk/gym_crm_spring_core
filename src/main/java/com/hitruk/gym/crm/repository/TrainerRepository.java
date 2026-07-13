@@ -1,4 +1,4 @@
-package com.hitruk.gym.crm.model.dao;
+package com.hitruk.gym.crm.repository;
 
 import com.hitruk.gym.crm.model.entity.Trainer;
 import com.hitruk.gym.crm.model.entity.Training;
@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainerDao {
+public interface TrainerRepository {
     Trainer save(Trainer trainer);
 
     Optional<Trainer> findByUsername(String username);

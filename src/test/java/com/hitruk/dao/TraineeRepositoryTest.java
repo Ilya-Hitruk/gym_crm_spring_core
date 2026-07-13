@@ -1,6 +1,6 @@
 package com.hitruk.dao;
 
-import com.hitruk.gym.crm.model.dao.impl.TraineeDaoImpl;
+import com.hitruk.gym.crm.repository.impl.TraineeRepositoryImpl;
 import com.hitruk.gym.crm.model.entity.Trainee;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TraineeDaoTest {
+class TraineeRepositoryTest {
     @Mock
     private SessionFactory sessionFactory;
     @Mock
@@ -28,14 +28,14 @@ class TraineeDaoTest {
     @SuppressWarnings("rawtypes")
     private Query query;
 
-    private TraineeDaoImpl dao;
+    private TraineeRepositoryImpl dao;
     private Trainee trainee;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
         when(sessionFactory.getCurrentSession()).thenReturn(session);
-        dao = new TraineeDaoImpl(sessionFactory);
+        dao = new TraineeRepositoryImpl(sessionFactory);
 
         trainee = Trainee.builder()
                 .id(1L).firstName("John").lastName("Smith")

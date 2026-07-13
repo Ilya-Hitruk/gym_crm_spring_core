@@ -1,11 +1,11 @@
-package com.hitruk.gym.crm.model.dao;
+package com.hitruk.gym.crm.repository;
 
 import com.hitruk.gym.crm.model.entity.TrainingType;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface TrainingTypeDao {
+public interface TrainingTypeRepository {
     TrainingType save(TrainingType trainingType);
 
     Optional<TrainingType> findByName(String name);

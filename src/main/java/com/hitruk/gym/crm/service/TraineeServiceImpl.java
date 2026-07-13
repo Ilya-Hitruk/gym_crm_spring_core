@@ -4,8 +4,8 @@ import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.mapper.TraineeMapper;
 import com.hitruk.gym.crm.mapper.TrainerMapper;
 import com.hitruk.gym.crm.mapper.TrainingMapper;
-import com.hitruk.gym.crm.model.dao.TraineeDao;
-import com.hitruk.gym.crm.model.dao.TrainerDao;
+import com.hitruk.gym.crm.repository.TraineeRepository;
+import com.hitruk.gym.crm.repository.TrainerRepository;
 import com.hitruk.gym.crm.model.dto.TraineeDto;
 import com.hitruk.gym.crm.model.dto.TrainerDto;
 import com.hitruk.gym.crm.model.dto.TrainingDto;
@@ -25,8 +25,8 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class TraineeServiceImpl implements TraineeService {
-    private final TraineeDao traineeDao;
-    private final TrainerDao trainerDao;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
     private final TraineeMapper traineeMapper;
     private final TrainerMapper trainerMapper;
     private final TrainingMapper trainingMapper;
@@ -36,8 +36,8 @@ public class TraineeServiceImpl implements TraineeService {
     public TraineeDto create(TraineeDto dto) {
         log.info("Creating trainee: firstName={}, lastName={}", dto.getFirstName(), dto.getLastName());
         List<String> allUsernames = new ArrayList<>();
-        traineeDao.findAll().forEach(t -> allUsernames.add(t.getUsername()));
-        trainerDao.findAll().forEach(t -> allUsernames.add(t.getUsername()));
+        traineeRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
+        trainerRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
 
         String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), allUsernames);
         String password = profileGenerator.generatePassword();
@@ -52,7 +52,7 @@ public class TraineeServiceImpl implements TraineeService {
                 .address(dto.getAddress())
                 .build();
 
-        Trainee saved = traineeDao.save(trainee);
+        Trainee saved = traineeRepository.save(trainee);
         log.info("Trainee created: username={}", username);
         return traineeMapper.toDto(saved);
     }
@@ -61,14 +61,14 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional(readOnly = true)
     public boolean matchCredentials(String username, String password) {
         log.info("Matching credentials for trainee: username={}", username);
-        return traineeDao.matchCredentials(username, password);
+        return traineeRepository.matchCredentials(username, password);
     }
 
     @Override
     @Transactional(readOnly = true)
     public TraineeDto findByUsername(String username) {
         log.info("Finding trainee by username={}", username);
-        return traineeDao.findByUsername(username)
+        return traineeRepository.findByUsername(username)
                 .map(traineeMapper::toDto)
                 .orElseThrow(() -> {
                     log.warn("Trainee not found: username={}", username);
@@ -79,16 +79,16 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public void changePassword(String username, String oldPassword, String newPassword) {
         log.info("Changing password for trainee: username={}", username);
-        if (!traineeDao.matchCredentials(username, oldPassword)) {
+        if (!traineeRepository.matchCredentials(username, oldPassword)) {
             throw new EntityNotFoundException("Invalid credentials for trainee: " + username);
         }
-        traineeDao.changePassword(username, newPassword);
+        traineeRepository.changePassword(username, newPassword);
     }
 
     @Override
     public TraineeDto update(TraineeDto dto) {
         log.info("Updating trainee: username={}", dto.getUsername());
-        Trainee existing = traineeDao.findByUsername(dto.getUsername())
+        Trainee existing = traineeRepository.findByUsername(dto.getUsername())
                 .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getUsername()));
 
         existing.setFirstName(dto.getFirstName());
@@ -97,7 +97,7 @@ public class TraineeServiceImpl implements TraineeService {
         existing.setDateOfBirth(dto.getDateOfBirth());
         existing.setAddress(dto.getAddress());
 
-        Trainee updated = traineeDao.update(existing);
+        Trainee updated = traineeRepository.update(existing);
         log.info("Trainee updated: username={}", dto.getUsername());
         return traineeMapper.toDto(updated);
     }
@@ -105,13 +105,13 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public void setActive(String username, boolean isActive) {
         log.info("Setting trainee isActive={} for username={}", isActive, username);
-        traineeDao.setActive(username, isActive);
+        traineeRepository.setActive(username, isActive);
     }
 
     @Override
     public void deleteByUsername(String username) {
         log.info("Deleting trainee: username={}", username);
-        traineeDao.deleteByUsername(username);
+        traineeRepository.deleteByUsername(username);
         log.info("Trainee deleted: username={}", username);
     }
 
@@ -120,7 +120,7 @@ public class TraineeServiceImpl implements TraineeService {
     public List<TrainingDto> getTrainings(String username, LocalDate fromDate, LocalDate toDate,
                                           String trainerName, String trainingType) {
         log.info("Getting trainings for trainee: username={}", username);
-        return traineeDao.getTrainings(username, fromDate, toDate, trainerName, trainingType)
+        return traineeRepository.getTrainings(username, fromDate, toDate, trainerName, trainingType)
                 .stream().map(trainingMapper::toDto).toList();
     }
 
@@ -128,14 +128,14 @@ public class TraineeServiceImpl implements TraineeService {
     @Transactional(readOnly = true)
     public List<TrainerDto> getUnassignedTrainers(String traineeUsername) {
         log.info("Getting unassigned trainers for trainee: username={}", traineeUsername);
-        return traineeDao.getUnassignedTrainers(traineeUsername)
+        return traineeRepository.getUnassignedTrainers(traineeUsername)
                 .stream().map(trainerMapper::toDto).toList();
     }
 
     @Override
     public List<TrainerDto> updateTrainers(String traineeUsername, List<String> trainerUsernames) {
         log.info("Updating trainers for trainee: username={}", traineeUsername);
-        return traineeDao.updateTrainers(traineeUsername, trainerUsernames)
+        return traineeRepository.updateTrainers(traineeUsername, trainerUsernames)
                 .stream().map(trainerMapper::toDto).toList();
     }
 }

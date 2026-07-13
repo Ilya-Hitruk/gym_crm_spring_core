@@ -1,6 +1,6 @@
-package com.hitruk.gym.crm.model.dao.impl;
+package com.hitruk.gym.crm.repository.impl;
 
-import com.hitruk.gym.crm.model.dao.TrainingDao;
+import com.hitruk.gym.crm.repository.TrainingRepository;
 import com.hitruk.gym.crm.model.entity.Training;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 @Slf4j
 @RequiredArgsConstructor
-public class TrainingDaoImpl implements TrainingDao {
+public class TrainingRepositoryImpl implements TrainingRepository {
     private final SessionFactory sessionFactory;
 
     private Session session() {
