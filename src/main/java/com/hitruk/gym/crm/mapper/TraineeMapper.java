@@ -2,7 +2,10 @@ package com.hitruk.gym.crm.mapper;
 
 import com.hitruk.gym.crm.model.dto.TraineeDto;
 import com.hitruk.gym.crm.model.entity.Trainee;
+import com.hitruk.gym.crm.model.entity.Trainer;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
@@ -16,11 +19,17 @@ public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
                 .username(dto.getUsername())
                 .password(dto.getPassword())
                 .isActive(dto.getIsActive())
+                .dateOfBirth(dto.getDateOfBirth())
+                .address(dto.getAddress())
                 .build();
     }
 
     @Override
     public TraineeDto toDto(Trainee entity) {
+        List<String> trainerUsernames = entity.getTrainers() == null ? List.of() :
+                entity.getTrainers().stream()
+                        .map(Trainer::getUsername)
+                        .toList();
         return TraineeDto.builder()
                 .id(entity.getId())
                 .firstName(entity.getFirstName())
@@ -30,6 +39,7 @@ public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
                 .isActive(entity.getIsActive())
                 .dateOfBirth(entity.getDateOfBirth())
                 .address(entity.getAddress())
+                .trainerUsernames(trainerUsernames)
                 .build();
     }
 }

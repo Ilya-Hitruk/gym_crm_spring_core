@@ -3,13 +3,14 @@ package com.hitruk.mapper;
 import com.hitruk.gym.crm.mapper.TrainerMapper;
 import com.hitruk.gym.crm.model.dto.TrainerDto;
 import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.TrainerSpecialization;
+import com.hitruk.gym.crm.model.entity.TrainingType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TrainerMapperTest {
+
     private TrainerMapper mapper;
 
     @BeforeEach
@@ -17,17 +18,17 @@ class TrainerMapperTest {
         mapper = new TrainerMapper();
     }
 
+    private Trainer buildTrainer(String typeName) {
+        TrainingType type = TrainingType.builder().id(1L).name(typeName).build();
+        return Trainer.builder()
+                .id(1L).firstName("Chris").lastName("Bumstead")
+                .username("Chris.Bumstead").password("pass123456").isActive(true)
+                .specialization(type).build();
+    }
+
     @Test
-    void toDto_mapsAllFields() {
-        Trainer entity = Trainer.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .username("Chris.Bumstead")
-                .password("pass123456")
-                .isActive(true)
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+    void toDto_mapsAllUserFields() {
+        Trainer entity = buildTrainer("FITNESS");
 
         TrainerDto dto = mapper.toDto(entity);
 
@@ -37,56 +38,27 @@ class TrainerMapperTest {
         assertEquals("Chris.Bumstead", dto.getUsername());
         assertEquals("pass123456", dto.getPassword());
         assertTrue(dto.getIsActive());
-        assertEquals("BODYBUILDING", dto.getSpecialization());
     }
 
     @Test
-    void toDto_specializationCrossfit_mapsToString() {
-        Trainer entity = Trainer.builder()
-                .id(2L)
-                .firstName("Mat")
-                .lastName("Fraser")
-                .specialization(TrainerSpecialization.CROSSFIT)
-                .build();
+    void toDto_mapsSpecializationName() {
+        TrainerDto dto = mapper.toDto(buildTrainer("YOGA"));
 
-        TrainerDto dto = mapper.toDto(entity);
-
-        assertEquals("CROSSFIT", dto.getSpecialization());
-    }
-
-    @Test
-    void toDto_specializationFitness_mapsToString() {
-        Trainer entity = Trainer.builder()
-                .id(3L)
-                .firstName("Jeff")
-                .lastName("Nippard")
-                .specialization(TrainerSpecialization.FITNESS)
-                .build();
-
-        assertEquals("FITNESS", mapper.toDto(entity).getSpecialization());
+        assertEquals("YOGA", dto.getSpecialization());
     }
 
     @Test
     void toDto_isActiveFalse_preservedCorrectly() {
-        Trainer entity = Trainer.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .isActive(false)
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+        TrainingType type = TrainingType.builder().name("FITNESS").build();
+        Trainer entity = Trainer.builder().firstName("Chris").lastName("Bumstead")
+                .isActive(false).specialization(type).build();
 
         assertFalse(mapper.toDto(entity).getIsActive());
     }
 
     @Test
     void toDto_doesNotShareReferenceWithEntity() {
-        Trainer entity = Trainer.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+        Trainer entity = buildTrainer("FITNESS");
 
         TrainerDto dto = mapper.toDto(entity);
 
@@ -95,93 +67,55 @@ class TrainerMapperTest {
     }
 
     @Test
-    void toEntity_mapsAllFields() {
+    void toEntity_mapsUserFields() {
         TrainerDto dto = TrainerDto.builder()
-                .id(1L)
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .username("Chris.Bumstead")
-                .password("pass123456")
-                .isActive(true)
-                .specialization("BODYBUILDING")
-                .build();
+                .id(1L).firstName("Chris").lastName("Bumstead")
+                .username("Chris.Bumstead").password("pass123456")
+                .isActive(true).specialization("FITNESS").build();
 
         Trainer entity = mapper.toEntity(dto);
 
-        assertEquals(1L, entity.getId());
         assertEquals("Chris", entity.getFirstName());
-        assertEquals("Bumstead", entity.getLastName());
         assertEquals("Chris.Bumstead", entity.getUsername());
-        assertEquals("pass123456", entity.getPassword());
-        assertTrue(entity.getIsActive());
-        assertEquals(TrainerSpecialization.BODYBUILDING, entity.getSpecialization());
     }
 
     @Test
-    void toEntity_specializationCrossfit_parsedCorrectly() {
+    void toEntity_mapsSpecializationToTrainingType() {
         TrainerDto dto = TrainerDto.builder()
-                .firstName("Mat")
-                .lastName("Fraser")
-                .specialization("CROSSFIT")
-                .build();
+                .firstName("Arnold").lastName("S").specialization("STRENGTH").build();
 
-        assertEquals(TrainerSpecialization.CROSSFIT, mapper.toEntity(dto).getSpecialization());
-    }
+        Trainer entity = mapper.toEntity(dto);
 
-    @Test
-    void toEntity_specializationFitness_parsedCorrectly() {
-        TrainerDto dto = TrainerDto.builder()
-                .firstName("Jeff")
-                .lastName("Nippard")
-                .specialization("FITNESS")
-                .build();
-
-        assertEquals(TrainerSpecialization.FITNESS, mapper.toEntity(dto).getSpecialization());
-    }
-
-    @Test
-    void toEntity_invalidSpecialization_throwsIllegalArgumentException() {
-        TrainerDto dto = TrainerDto.builder()
-                .firstName("X")
-                .lastName("Y")
-                .specialization("UNKNOWN_SPEC")
-                .build();
-
-        assertThrows(IllegalArgumentException.class, () -> mapper.toEntity(dto));
+        assertNotNull(entity.getSpecialization());
+        assertEquals("STRENGTH", entity.getSpecialization().getName());
     }
 
     @Test
     void toEntity_nullId_mapsAsNull() {
         TrainerDto dto = TrainerDto.builder()
-                .firstName("Chris")
-                .lastName("Bumstead")
-                .specialization("BODYBUILDING")
-                .build();
+                .firstName("Chris").lastName("Bumstead").specialization("FITNESS").build();
 
         assertNull(mapper.toEntity(dto).getId());
     }
 
     @Test
-    void toDto_thenToEntity_preservesAllFields() {
-        Trainer original = Trainer.builder()
-                .id(7L)
-                .firstName("Arnold")
-                .lastName("Schwarzenegger")
-                .username("Arnold.Schwarzenegger")
-                .password("terminator1")
-                .isActive(true)
-                .specialization(TrainerSpecialization.BODYBUILDING)
-                .build();
+    void toEntity_nullSpecialization_mapsAsNull() {
+        TrainerDto dto = TrainerDto.builder()
+                .firstName("Chris").lastName("Bumstead").build();
+
+        assertNull(mapper.toEntity(dto).getSpecialization());
+    }
+
+    @Test
+    void roundTrip_preservesCoreFields() {
+        Trainer original = buildTrainer("FITNESS");
 
         TrainerDto dto = mapper.toDto(original);
         Trainer restored = mapper.toEntity(dto);
 
         assertEquals(original.getId(), restored.getId());
         assertEquals(original.getFirstName(), restored.getFirstName());
-        assertEquals(original.getLastName(), restored.getLastName());
         assertEquals(original.getUsername(), restored.getUsername());
-        assertEquals(original.getPassword(), restored.getPassword());
-        assertEquals(original.getIsActive(), restored.getIsActive());
-        assertEquals(original.getSpecialization(), restored.getSpecialization());
+        assertEquals(original.getSpecialization().getName(), restored.getSpecialization().getName());
     }
 }

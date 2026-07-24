@@ -1,54 +1,56 @@
 package com.hitruk.gym.crm.service;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
-import com.hitruk.gym.crm.mapper.Mapper;
-import com.hitruk.gym.crm.model.dao.Dao;
+import com.hitruk.gym.crm.mapper.TrainingMapper;
+import com.hitruk.gym.crm.repository.TraineeRepository;
+import com.hitruk.gym.crm.repository.TrainerRepository;
+import com.hitruk.gym.crm.repository.TrainingRepository;
+import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.model.dto.TrainingDto;
+import com.hitruk.gym.crm.model.entity.Trainee;
+import com.hitruk.gym.crm.model.entity.Trainer;
 import com.hitruk.gym.crm.model.entity.Training;
+import com.hitruk.gym.crm.model.entity.TrainingType;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
+@Transactional
+@RequiredArgsConstructor
 public class TrainingServiceImpl implements TrainingService {
-    private Dao<Long, Training> trainingDao;
-    private Mapper<Training, TrainingDto> trainingMapper;
-
-    @Autowired
-    public void setTrainingDao(Dao<Long, Training> trainingDao) {
-        this.trainingDao = trainingDao;
-    }
-
-    @Autowired
-    public void setTrainingMapper(Mapper<Training, TrainingDto> trainingMapper) {
-        this.trainingMapper = trainingMapper;
-    }
-
-    @Override
-    public TrainingDto findById(Long id) {
-        log.info("Finding training by id={}", id);
-        return trainingDao.findById(id)
-                .map(trainingMapper::toDto)
-                .orElseThrow(() -> {
-                    log.warn("Training not found: id={}", id);
-                    return new EntityNotFoundException("Training not found by id: " + id);
-                });
-    }
-
-    @Override
-    public List<TrainingDto> findAll() {
-        log.info("Finding all trainings");
-        return trainingDao.findAll().stream().map(trainingMapper::toDto).toList();
-    }
+    private final TrainingRepository trainingRepository;
+    private final TraineeRepository traineeRepository;
+    private final TrainerRepository trainerRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
+    private final TrainingMapper trainingMapper;
 
     @Override
     public TrainingDto create(TrainingDto dto) {
         log.info("Creating training: name={}", dto.getName());
-        Training created = trainingDao.create(trainingMapper.toEntity(dto));
-        log.info("Training created: id={}", created.getId());
-        return trainingMapper.toDto(created);
+
+        Trainee trainee = traineeRepository.findByUsername(dto.getTraineeUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getTraineeUsername()));
+
+        Trainer trainer = trainerRepository.findByUsername(dto.getTrainerUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + dto.getTrainerUsername()));
+
+        TrainingType type = trainingTypeRepository.findByName(dto.getTrainingType())
+                .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + dto.getTrainingType()));
+
+        Training training = Training.builder()
+                .trainee(trainee)
+                .trainer(trainer)
+                .name(dto.getName())
+                .type(type)
+                .date(dto.getDate())
+                .duration(dto.getDuration())
+                .build();
+
+        Training saved = trainingRepository.save(training);
+        log.info("Training created: id={}, name={}", saved.getId(), saved.getName());
+        return trainingMapper.toDto(saved);
     }
 }

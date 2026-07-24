@@ -4,9 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
@@ -14,10 +12,10 @@ import java.time.LocalDateTime;
 @Builder
 public class TrainingDto {
     private Long id;
-    private Long traineeId;
-    private Long trainerId;
+    private String traineeUsername;
+    private String trainerUsername;
     private String name;
     private String trainingType;
-    private LocalDateTime date;
-    private Duration duration;
+    private LocalDate date;
+    private Integer duration;
 }

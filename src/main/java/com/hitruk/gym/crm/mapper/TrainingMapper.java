@@ -2,7 +2,6 @@ package com.hitruk.gym.crm.mapper;
 
 import com.hitruk.gym.crm.model.dto.TrainingDto;
 import com.hitruk.gym.crm.model.entity.Training;
-import com.hitruk.gym.crm.model.entity.TrainingType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,10 +11,7 @@ public class TrainingMapper implements Mapper<Training, TrainingDto> {
     public Training toEntity(TrainingDto dto) {
         return Training.builder()
                 .id(dto.getId())
-                .traineeId(dto.getTraineeId())
-                .trainerId(dto.getTrainerId())
                 .name(dto.getName())
-                .type(TrainingType.valueOf(dto.getTrainingType()))
                 .date(dto.getDate())
                 .duration(dto.getDuration())
                 .build();
@@ -25,10 +21,10 @@ public class TrainingMapper implements Mapper<Training, TrainingDto> {
     public TrainingDto toDto(Training entity) {
         return TrainingDto.builder()
                 .id(entity.getId())
-                .traineeId(entity.getTraineeId())
-                .trainerId(entity.getTrainerId())
+                .traineeUsername(entity.getTrainee().getUsername())
+                .trainerUsername(entity.getTrainer().getUsername())
                 .name(entity.getName())
-                .trainingType(entity.getType().name())
+                .trainingType(entity.getType().getName())
                 .date(entity.getDate())
                 .duration(entity.getDuration())
                 .build();

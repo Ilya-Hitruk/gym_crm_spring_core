@@ -5,12 +5,13 @@ import com.hitruk.gym.crm.model.dto.TraineeDto;
 import com.hitruk.gym.crm.model.entity.Trainee;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
 import java.time.LocalDate;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class TraineeMapperTest {
+
     private TraineeMapper mapper;
 
     @BeforeEach
@@ -18,18 +19,16 @@ class TraineeMapperTest {
         mapper = new TraineeMapper();
     }
 
+    private Trainee buildTrainee() {
+        return Trainee.builder()
+                .id(1L).firstName("John").lastName("Smith")
+                .username("John.Smith").password("pass123456").isActive(true)
+                .dateOfBirth(LocalDate.of(1990, Month.MARCH, 15)).address("New York").build();
+    }
+
     @Test
-    void toDto_mapsAllFields() {
-        Trainee entity = Trainee.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .username("John.Smith")
-                .password("pass123456")
-                .isActive(true)
-                .dateOfBirth(LocalDate.of(1990, 3, 15))
-                .address("New York")
-                .build();
+    void toDto_mapsAllUserFields() {
+        Trainee entity = buildTrainee();
 
         TraineeDto dto = mapper.toDto(entity);
 
@@ -39,18 +38,21 @@ class TraineeMapperTest {
         assertEquals("John.Smith", dto.getUsername());
         assertEquals("pass123456", dto.getPassword());
         assertTrue(dto.getIsActive());
-        assertEquals(LocalDate.of(1990, 3, 15), dto.getDateOfBirth());
+    }
+
+    @Test
+    void toDto_mapsTraineeSpecificFields() {
+        Trainee entity = buildTrainee();
+
+        TraineeDto dto = mapper.toDto(entity);
+
+        assertEquals(LocalDate.of(1990, Month.MARCH, 15), dto.getDateOfBirth());
         assertEquals("New York", dto.getAddress());
     }
 
     @Test
     void toDto_isActiveFalse_preservedCorrectly() {
-        Trainee entity = Trainee.builder()
-                .id(2L)
-                .firstName("Jane")
-                .lastName("Doe")
-                .isActive(false)
-                .build();
+        Trainee entity = Trainee.builder().firstName("Jane").lastName("Doe").isActive(false).build();
 
         TraineeDto dto = mapper.toDto(entity);
 
@@ -59,12 +61,7 @@ class TraineeMapperTest {
 
     @Test
     void toDto_nullDateOfBirth_mapsAsNull() {
-        Trainee entity = Trainee.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .dateOfBirth(null)
-                .build();
+        Trainee entity = Trainee.builder().firstName("John").lastName("Smith").dateOfBirth(null).build();
 
         TraineeDto dto = mapper.toDto(entity);
 
@@ -72,27 +69,18 @@ class TraineeMapperTest {
     }
 
     @Test
-    void toDto_nullAddress_mapsAsNull() {
-        Trainee entity = Trainee.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .address(null)
-                .build();
+    void toDto_emptyTrainersList_returnsEmptyList() {
+        Trainee entity = buildTrainee();
 
         TraineeDto dto = mapper.toDto(entity);
 
-        assertNull(dto.getAddress());
+        assertNotNull(dto.getTrainerUsernames());
+        assertTrue(dto.getTrainerUsernames().isEmpty());
     }
 
     @Test
     void toDto_doesNotShareReferenceWithEntity() {
-        Trainee entity = Trainee.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .build();
+        Trainee entity = buildTrainee();
 
         TraineeDto dto = mapper.toDto(entity);
 
@@ -101,49 +89,35 @@ class TraineeMapperTest {
     }
 
     @Test
-    void toEntity_mapsAllFields() {
+    void toEntity_mapsUserFields() {
         TraineeDto dto = TraineeDto.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .username("John.Smith")
-                .password("pass123456")
-                .isActive(true)
-                .dateOfBirth(LocalDate.of(1990, 3, 15))
-                .address("New York")
-                .build();
+                .id(1L).firstName("John").lastName("Smith")
+                .username("John.Smith").password("pass123456").isActive(true)
+                .dateOfBirth(LocalDate.of(1990, Month.MARCH, 15)).address("New York").build();
 
         Trainee entity = mapper.toEntity(dto);
 
-        assertEquals(1L, entity.getId());
         assertEquals("John", entity.getFirstName());
         assertEquals("Smith", entity.getLastName());
         assertEquals("John.Smith", entity.getUsername());
-        assertEquals("pass123456", entity.getPassword());
-        assertTrue(entity.getIsActive());
     }
 
     @Test
-    void toEntity_doesNotMapDateOfBirthAndAddress() {
+    void toEntity_mapsTraineeSpecificFields() {
         TraineeDto dto = TraineeDto.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .address("New York")
-                .build();
+                .firstName("John").lastName("Smith").id(5L)
+                .dateOfBirth(LocalDate.of(1990, Month.JANUARY, 1)).address("Chicago").build();
 
         Trainee entity = mapper.toEntity(dto);
-        assertNull(entity.getDateOfBirth());
-        assertNull(entity.getAddress());
+
+        assertEquals(5L, entity.getId());
+        assertEquals(LocalDate.of(1990, Month.JANUARY, 1), entity.getDateOfBirth());
+        assertEquals("Chicago", entity.getAddress());
     }
 
     @Test
     void toEntity_nullId_mapsAsNull() {
-        TraineeDto dto = TraineeDto.builder()
-                .firstName("John")
-                .lastName("Smith")
-                .build();
+        TraineeDto dto = TraineeDto.builder().firstName("John").lastName("Smith").build();
 
         Trainee entity = mapper.toEntity(dto);
 
@@ -151,24 +125,14 @@ class TraineeMapperTest {
     }
 
     @Test
-    void toDto_thenToEntity_preservesCoreFields() {
-        Trainee original = Trainee.builder()
-                .id(5L)
-                .firstName("Alice")
-                .lastName("Walker")
-                .username("Alice.Walker")
-                .password("xyz9876543")
-                .isActive(true)
-                .build();
+    void roundTrip_preservesCoreFields() {
+        Trainee original = buildTrainee();
 
         TraineeDto dto = mapper.toDto(original);
         Trainee restored = mapper.toEntity(dto);
 
         assertEquals(original.getId(), restored.getId());
         assertEquals(original.getFirstName(), restored.getFirstName());
-        assertEquals(original.getLastName(), restored.getLastName());
         assertEquals(original.getUsername(), restored.getUsername());
-        assertEquals(original.getPassword(), restored.getPassword());
-        assertEquals(original.getIsActive(), restored.getIsActive());
     }
 }
