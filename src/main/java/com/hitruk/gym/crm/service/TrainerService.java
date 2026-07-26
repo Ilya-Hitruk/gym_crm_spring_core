@@ -1,7 +1,10 @@
 package com.hitruk.gym.crm.service;
 
-import com.hitruk.gym.crm.model.dto.TrainerDto;
+import com.hitruk.gym.crm.api.dto.TraineeDto;
+import com.hitruk.gym.crm.api.dto.TrainerDto;
+import com.hitruk.gym.crm.api.dto.TrainingDto;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface TrainerService {
@@ -18,4 +21,8 @@ public interface TrainerService {
     void setActive(String username, boolean isActive);
 
     List<TrainerDto> findAll();
+
+    List<TraineeDto> getTrainees(String trainerUsername);
+
+    List<TrainingDto> getTrainings(String username, LocalDate fromDate, LocalDate toDate, String traineeName);
 }

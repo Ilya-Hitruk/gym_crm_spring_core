@@ -1,6 +1,6 @@
 package com.hitruk.gym.crm.repository;
 
-import com.hitruk.gym.crm.model.entity.TrainingType;
+import com.hitruk.gym.crm.entity.TrainingType;
 
 import java.util.List;
 import java.util.Optional;

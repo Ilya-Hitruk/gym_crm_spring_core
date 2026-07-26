@@ -1,15 +1,17 @@
 package com.hitruk.gym.crm.service;
 
+import com.hitruk.gym.crm.api.dto.response.TrainerSummary;
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
+import com.hitruk.gym.crm.exception.InvalidActivationStateException;
+import com.hitruk.gym.crm.exception.InvalidCredentialsException;
 import com.hitruk.gym.crm.mapper.TraineeMapper;
 import com.hitruk.gym.crm.mapper.TrainerMapper;
 import com.hitruk.gym.crm.mapper.TrainingMapper;
 import com.hitruk.gym.crm.repository.TraineeRepository;
 import com.hitruk.gym.crm.repository.TrainerRepository;
-import com.hitruk.gym.crm.model.dto.TraineeDto;
-import com.hitruk.gym.crm.model.dto.TrainerDto;
-import com.hitruk.gym.crm.model.dto.TrainingDto;
-import com.hitruk.gym.crm.model.entity.Trainee;
+import com.hitruk.gym.crm.api.dto.TraineeDto;
+import com.hitruk.gym.crm.api.dto.TrainingDto;
+import com.hitruk.gym.crm.entity.Trainee;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,11 +37,16 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public TraineeDto create(TraineeDto dto) {
         log.info("Creating trainee: firstName={}, lastName={}", dto.getFirstName(), dto.getLastName());
-        List<String> allUsernames = new ArrayList<>();
-        traineeRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
-        trainerRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
+        if (trainerRepository.existsByFirstNameAndLastName(dto.getFirstName(), dto.getLastName())) {
+            throw new IllegalArgumentException(
+                    "Person is already registered as a trainer: " + dto.getFirstName() + " " + dto.getLastName());
+        }
 
-        String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), allUsernames);
+        String prefix = dto.getFirstName() + "." + dto.getLastName();
+        List<String> candidateUsernames = new ArrayList<>(traineeRepository.findUsernamesStartingWith(prefix));
+        candidateUsernames.addAll(trainerRepository.findUsernamesStartingWith(prefix));
+
+        String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), candidateUsernames);
         String password = profileGenerator.generatePassword();
 
         Trainee trainee = Trainee.builder()
@@ -80,16 +87,16 @@ public class TraineeServiceImpl implements TraineeService {
     public void changePassword(String username, String oldPassword, String newPassword) {
         log.info("Changing password for trainee: username={}", username);
         if (!traineeRepository.matchCredentials(username, oldPassword)) {
-            throw new EntityNotFoundException("Invalid credentials for trainee: " + username);
+            throw new InvalidCredentialsException("Invalid credentials for trainee: " + username);
         }
         traineeRepository.changePassword(username, newPassword);
     }
 
     @Override
     public TraineeDto update(TraineeDto dto) {
-        log.info("Updating trainee: username={}", dto.getUsername());
-        Trainee existing = traineeRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getUsername()));
+        log.info("Updating trainee: username={}", dto.getCredentials().getUsername());
+        Trainee existing = traineeRepository.findByUsername(dto.getCredentials().getUsername())
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + dto.getCredentials().getUsername()));
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
@@ -98,13 +105,19 @@ public class TraineeServiceImpl implements TraineeService {
         existing.setAddress(dto.getAddress());
 
         Trainee updated = traineeRepository.update(existing);
-        log.info("Trainee updated: username={}", dto.getUsername());
+        log.info("Trainee updated: username={}", dto.getCredentials().getUsername());
         return traineeMapper.toDto(updated);
     }
 
     @Override
     public void setActive(String username, boolean isActive) {
         log.info("Setting trainee isActive={} for username={}", isActive, username);
+        Trainee trainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainee not found: " + username));
+        if (Boolean.valueOf(isActive).equals(trainee.getIsActive())) {
+            throw new InvalidActivationStateException(
+                    "Trainee " + username + " is already " + (isActive ? "active" : "inactive"));
+        }
         traineeRepository.setActive(username, isActive);
     }
 
@@ -126,16 +139,16 @@ public class TraineeServiceImpl implements TraineeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TrainerDto> getUnassignedTrainers(String traineeUsername) {
+    public List<TrainerSummary> getUnassignedTrainers(String traineeUsername) {
         log.info("Getting unassigned trainers for trainee: username={}", traineeUsername);
         return traineeRepository.getUnassignedTrainers(traineeUsername)
-                .stream().map(trainerMapper::toDto).toList();
+                .stream().map(trainerMapper::toSummary).toList();
     }
 
     @Override
-    public List<TrainerDto> updateTrainers(String traineeUsername, List<String> trainerUsernames) {
+    public List<TrainerSummary> updateTrainers(String traineeUsername, List<String> trainerUsernames) {
         log.info("Updating trainers for trainee: username={}", traineeUsername);
         return traineeRepository.updateTrainers(traineeUsername, trainerUsernames)
-                .stream().map(trainerMapper::toDto).toList();
+                .stream().map(trainerMapper::toSummary).toList();
     }
 }

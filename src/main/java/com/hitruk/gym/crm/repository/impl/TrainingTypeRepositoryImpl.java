@@ -1,7 +1,7 @@
 package com.hitruk.gym.crm.repository.impl;
 
 import com.hitruk.gym.crm.repository.TrainingTypeRepository;
-import com.hitruk.gym.crm.model.entity.TrainingType;
+import com.hitruk.gym.crm.entity.TrainingType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;

@@ -39,7 +39,7 @@ public class HibernateConfig {
 
         sessionFactory.setDataSource(dataSource);
         sessionFactory.setPackagesToScan(
-                "com.hitruk.gym.crm.model.entity"
+                "com.hitruk.gym.crm.entity"
         );
         sessionFactory.setHibernateProperties(properties);
 

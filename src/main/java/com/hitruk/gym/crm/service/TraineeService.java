@@ -1,8 +1,8 @@
 package com.hitruk.gym.crm.service;
 
-import com.hitruk.gym.crm.model.dto.TraineeDto;
-import com.hitruk.gym.crm.model.dto.TrainerDto;
-import com.hitruk.gym.crm.model.dto.TrainingDto;
+import com.hitruk.gym.crm.api.dto.TraineeDto;
+import com.hitruk.gym.crm.api.dto.TrainingDto;
+import com.hitruk.gym.crm.api.dto.response.TrainerSummary;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -25,7 +25,7 @@ public interface TraineeService {
     List<TrainingDto> getTrainings(String username, LocalDate fromDate, LocalDate toDate,
                                    String trainerName, String trainingType);
 
-    List<TrainerDto> getUnassignedTrainers(String traineeUsername);
+    List<TrainerSummary> getUnassignedTrainers(String traineeUsername);
 
-    List<TrainerDto> updateTrainers(String traineeUsername, List<String> trainerUsernames);
+    List<TrainerSummary> updateTrainers(String traineeUsername, List<String> trainerUsernames);
 }
