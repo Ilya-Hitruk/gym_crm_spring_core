@@ -1,8 +1,8 @@
 package com.hitruk.gym.crm.repository;
 
-import com.hitruk.gym.crm.model.entity.Trainee;
-import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.Training;
+import com.hitruk.gym.crm.entity.Trainee;
+import com.hitruk.gym.crm.entity.Trainer;
+import com.hitruk.gym.crm.entity.Training;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,5 +30,7 @@ public interface TraineeRepository {
 
     List<Trainer> updateTrainers(String traineeUsername, List<String> trainerUsernames);
 
-    List<Trainee> findAll();
+    List<String> findUsernamesStartingWith(String prefix);
+
+    boolean existsByFirstNameAndLastName(String firstName, String lastName);
 }

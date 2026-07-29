@@ -1,7 +1,7 @@
 package com.hitruk.gym.crm.mapper;
 
-import com.hitruk.gym.crm.model.dto.TrainingDto;
-import com.hitruk.gym.crm.model.entity.Training;
+import com.hitruk.gym.crm.api.dto.TrainingDto;
+import com.hitruk.gym.crm.entity.Training;
 import org.springframework.stereotype.Component;
 
 @Component

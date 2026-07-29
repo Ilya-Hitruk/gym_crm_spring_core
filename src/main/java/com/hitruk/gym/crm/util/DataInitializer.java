@@ -1,7 +1,7 @@
 package com.hitruk.gym.crm.util;
 
 import com.hitruk.gym.crm.repository.TrainingTypeRepository;
-import com.hitruk.gym.crm.model.entity.TrainingType;
+import com.hitruk.gym.crm.entity.TrainingType;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

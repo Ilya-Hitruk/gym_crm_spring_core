@@ -1,19 +1,26 @@
 package com.hitruk.gym.crm.service;
 
+import com.hitruk.gym.crm.api.dto.TraineeDto;
+import com.hitruk.gym.crm.api.dto.TrainingDto;
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
+import com.hitruk.gym.crm.exception.InvalidActivationStateException;
+import com.hitruk.gym.crm.exception.InvalidCredentialsException;
+import com.hitruk.gym.crm.mapper.TraineeMapper;
 import com.hitruk.gym.crm.mapper.TrainerMapper;
+import com.hitruk.gym.crm.mapper.TrainingMapper;
 import com.hitruk.gym.crm.repository.TraineeRepository;
 import com.hitruk.gym.crm.repository.TrainerRepository;
 import com.hitruk.gym.crm.repository.TrainingTypeRepository;
-import com.hitruk.gym.crm.model.dto.TrainerDto;
-import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.TrainingType;
+import com.hitruk.gym.crm.api.dto.TrainerDto;
+import com.hitruk.gym.crm.entity.Trainer;
+import com.hitruk.gym.crm.entity.TrainingType;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,16 +33,23 @@ public class TrainerServiceImpl implements TrainerService {
     private final TraineeRepository traineeRepository;
     private final TrainingTypeRepository trainingTypeRepository;
     private final TrainerMapper trainerMapper;
+    private final TraineeMapper traineeMapper;
+    private final TrainingMapper trainingMapper;
     private final ProfileGenerator profileGenerator;
 
     @Override
     public TrainerDto create(TrainerDto dto) {
         log.info("Creating trainer: firstName={}, lastName={}", dto.getFirstName(), dto.getLastName());
-        List<String> allUsernames = new ArrayList<>();
-        trainerRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
-        traineeRepository.findAll().forEach(t -> allUsernames.add(t.getUsername()));
+        if (traineeRepository.existsByFirstNameAndLastName(dto.getFirstName(), dto.getLastName())) {
+            throw new IllegalArgumentException(
+                    "Person is already registered as a trainee: " + dto.getFirstName() + " " + dto.getLastName());
+        }
 
-        String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), allUsernames);
+        String prefix = dto.getFirstName() + "." + dto.getLastName();
+        List<String> candidateUsernames = new ArrayList<>(trainerRepository.findUsernamesStartingWith(prefix));
+        candidateUsernames.addAll(traineeRepository.findUsernamesStartingWith(prefix));
+
+        String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), candidateUsernames);
         String password = profileGenerator.generatePassword();
 
         TrainingType specialization = trainingTypeRepository.findByName(dto.getSpecialization())
@@ -78,16 +92,17 @@ public class TrainerServiceImpl implements TrainerService {
     public void changePassword(String username, String oldPassword, String newPassword) {
         log.info("Changing password for trainer: username={}", username);
         if (!trainerRepository.matchCredentials(username, oldPassword)) {
-            throw new EntityNotFoundException("Invalid credentials for trainer: " + username);
+            throw new InvalidCredentialsException("Invalid credentials for trainer: " + username);
         }
         trainerRepository.changePassword(username, newPassword);
     }
 
     @Override
     public TrainerDto update(TrainerDto dto) {
-        log.info("Updating trainer: username={}", dto.getUsername());
-        Trainer existing = trainerRepository.findByUsername(dto.getUsername())
-                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + dto.getUsername()));
+        String username = dto.getCredentials().getUsername();
+        log.info("Updating trainer: username={}", username);
+        Trainer existing = trainerRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
@@ -100,13 +115,19 @@ public class TrainerServiceImpl implements TrainerService {
         }
 
         Trainer updated = trainerRepository.update(existing);
-        log.info("Trainer updated: username={}", dto.getUsername());
+        log.info("Trainer updated: username={}", username);
         return trainerMapper.toDto(updated);
     }
 
     @Override
     public void setActive(String username, boolean isActive) {
         log.info("Setting trainer isActive={} for username={}", isActive, username);
+        Trainer trainer = trainerRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));
+        if (Boolean.valueOf(isActive).equals(trainer.getIsActive())) {
+            throw new InvalidActivationStateException(
+                    "Trainer " + username + " is already " + (isActive ? "active" : "inactive"));
+        }
         trainerRepository.setActive(username, isActive);
     }
 
@@ -115,5 +136,22 @@ public class TrainerServiceImpl implements TrainerService {
     public List<TrainerDto> findAll() {
         log.info("Finding all trainers");
         return trainerRepository.findAll().stream().map(trainerMapper::toDto).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TraineeDto> getTrainees(String trainerUsername) {
+        log.info("Getting trainees for trainer: username={}", trainerUsername);
+        Trainer trainer = trainerRepository.findByUsername(trainerUsername)
+                .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + trainerUsername));
+        return trainer.getTrainees().stream().map(traineeMapper::toDto).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TrainingDto> getTrainings(String username, LocalDate fromDate, LocalDate toDate, String traineeName) {
+        log.info("Getting trainings for trainer: username={}", username);
+        return trainerRepository.getTrainings(username, fromDate, toDate, traineeName)
+                .stream().map(trainingMapper::toDto).toList();
     }
 }

@@ -1,14 +1,18 @@
 package com.hitruk.gym.crm.mapper;
 
-import com.hitruk.gym.crm.model.dto.TraineeDto;
-import com.hitruk.gym.crm.model.entity.Trainee;
-import com.hitruk.gym.crm.model.entity.Trainer;
+import com.hitruk.gym.crm.api.dto.TraineeDto;
+import com.hitruk.gym.crm.api.dto.UserCredentials;
+import com.hitruk.gym.crm.api.dto.response.TrainerSummary;
+import com.hitruk.gym.crm.entity.Trainee;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
+    private final TrainerMapper trainerMapper;
 
     @Override
     public Trainee toEntity(TraineeDto dto) {
@@ -16,8 +20,8 @@ public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
                 .id(dto.getId())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
-                .username(dto.getUsername())
-                .password(dto.getPassword())
+                .username(dto.getCredentials().getUsername())
+                .password(dto.getCredentials().getPassword())
                 .isActive(dto.getIsActive())
                 .dateOfBirth(dto.getDateOfBirth())
                 .address(dto.getAddress())
@@ -26,20 +30,19 @@ public class TraineeMapper implements Mapper<Trainee, TraineeDto> {
 
     @Override
     public TraineeDto toDto(Trainee entity) {
-        List<String> trainerUsernames = entity.getTrainers() == null ? List.of() :
+        List<TrainerSummary> trainers = entity.getTrainers() == null ? List.of() :
                 entity.getTrainers().stream()
-                        .map(Trainer::getUsername)
+                        .map(trainerMapper::toSummary)
                         .toList();
         return TraineeDto.builder()
                 .id(entity.getId())
                 .firstName(entity.getFirstName())
                 .lastName(entity.getLastName())
-                .username(entity.getUsername())
-                .password(entity.getPassword())
+                .credentials(UserCredentials.of(entity.getUsername(), entity.getPassword()))
                 .isActive(entity.getIsActive())
                 .dateOfBirth(entity.getDateOfBirth())
                 .address(entity.getAddress())
-                .trainerUsernames(trainerUsernames)
+                .trainers(trainers)
                 .build();
     }
 }

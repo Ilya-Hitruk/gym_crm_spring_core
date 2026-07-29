@@ -2,9 +2,9 @@ package com.hitruk.gym.crm.repository.impl;
 
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.repository.TraineeRepository;
-import com.hitruk.gym.crm.model.entity.Trainee;
-import com.hitruk.gym.crm.model.entity.Trainer;
-import com.hitruk.gym.crm.model.entity.Training;
+import com.hitruk.gym.crm.entity.Trainee;
+import com.hitruk.gym.crm.entity.Trainer;
+import com.hitruk.gym.crm.entity.Training;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
@@ -122,8 +122,28 @@ public class TraineeRepositoryImpl implements TraineeRepository {
     }
 
     @Override
-    public List<Trainee> findAll() {
-        return session().createQuery("FROM Trainee", Trainee.class).list();
+    public List<String> findUsernamesStartingWith(String prefix) {
+        return session()
+                .createQuery("SELECT t.username FROM Trainee t WHERE t.username LIKE :prefix ESCAPE '\\'", String.class)
+                .setParameter("prefix", escapeLike(prefix) + "%")
+                .list();
+    }
+
+    @Override
+    public boolean existsByFirstNameAndLastName(String firstName, String lastName) {
+        Long count = session()
+                .createQuery(
+                        "SELECT COUNT(t) FROM Trainee t WHERE LOWER(t.firstName) = LOWER(:firstName) " +
+                                "AND LOWER(t.lastName) = LOWER(:lastName)",
+                        Long.class)
+                .setParameter("firstName", firstName)
+                .setParameter("lastName", lastName)
+                .uniqueResult();
+        return count != null && count > 0;
+    }
+
+    private static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     private List<Training> executeFilteredTrainingsQuery(List<String> clauses, Map<String, Object> params) {
