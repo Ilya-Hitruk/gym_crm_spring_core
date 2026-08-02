@@ -5,8 +5,8 @@ import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.Training;
 import com.hitruk.gym.crm.entity.TrainingType;
 import com.hitruk.gym.crm.repository.impl.TrainingRepositoryImpl;
+import jakarta.persistence.EntityManager;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 class TrainingRepositoryTest {
 
     @Mock
-    private SessionFactory sessionFactory;
+    private EntityManager entityManager;
     @Mock
     private Session session;
 
@@ -32,8 +32,8 @@ class TrainingRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
-        dao = new TrainingRepositoryImpl(sessionFactory);
+        when(entityManager.unwrap(Session.class)).thenReturn(session);
+        dao = new TrainingRepositoryImpl(entityManager);
 
         TrainingType type = TrainingType.builder().id(1L).name("FITNESS").build();
         Trainee trainee = Trainee.builder().id(1L).username("John.Smith").build();

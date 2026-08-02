@@ -4,10 +4,10 @@ import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.repository.TrainerRepository;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.Training;
-import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -15,12 +15,19 @@ import java.util.*;
 
 @Repository
 @Slf4j
-@RequiredArgsConstructor
 public class TrainerRepositoryImpl implements TrainerRepository {
-    private final SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    TrainerRepositoryImpl() {
+    }
+
+    public TrainerRepositoryImpl(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     private Session session() {
-        return sessionFactory.getCurrentSession();
+        return entityManager.unwrap(Session.class);
     }
 
     @Override
@@ -106,6 +113,14 @@ public class TrainerRepositoryImpl implements TrainerRepository {
                 .setParameter("lastName", lastName)
                 .uniqueResult();
         return count != null && count > 0;
+    }
+
+    @Override
+    public long countActive() {
+        Long count = session()
+                .createQuery("SELECT COUNT(t) FROM Trainer t WHERE t.isActive = true", Long.class)
+                .uniqueResult();
+        return count == null ? 0 : count;
     }
 
     private static String escapeLike(String value) {

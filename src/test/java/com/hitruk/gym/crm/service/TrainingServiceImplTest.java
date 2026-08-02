@@ -6,6 +6,7 @@ import com.hitruk.gym.crm.entity.Training;
 import com.hitruk.gym.crm.entity.TrainingType;
 import com.hitruk.gym.crm.exception.EntityNotFoundException;
 import com.hitruk.gym.crm.mapper.TrainingMapper;
+import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.repository.TraineeRepository;
 import com.hitruk.gym.crm.repository.TrainerRepository;
 import com.hitruk.gym.crm.repository.TrainingRepository;
@@ -39,6 +40,8 @@ class TrainingServiceImplTest {
     private TrainingTypeRepository trainingTypeRepository;
     @Mock
     private TrainingMapper trainingMapper;
+    @Mock
+    private GymMetrics gymMetrics;
 
     @InjectMocks
     private TrainingServiceImpl service;
@@ -88,6 +91,7 @@ class TrainingServiceImplTest {
                         t.getTrainer() == trainer &&
                         t.getType() == trainingType
         ));
+        verify(gymMetrics).incrementTrainingCreated();
     }
 
     @Test

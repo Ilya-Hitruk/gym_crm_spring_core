@@ -10,5 +10,8 @@
     </root>
 
     <logger name="com.hitruk.gym" level="DEBUG"/>
-    <logger name="org.hibernate.SQL" level="DEBUG"/>
+
+    <springProfile name="local,dev">
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+    </springProfile>
 </configuration>
