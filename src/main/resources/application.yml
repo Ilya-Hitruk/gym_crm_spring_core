@@ -31,3 +31,7 @@ info:
   app:
     name: ${spring.application.name}
     description: Gym CRM REST API - trainee/trainer/training management
+
+jwt:
+  secret: ${JWT_SECRET:c3ByaW5nLXNlY3VyaXR5LWd5bS1jcm0tZGVtby1zZWNyZXQta2V5LTI1Ni1iaXRz}
+  expiration-ms: 3600000

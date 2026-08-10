@@ -18,6 +18,7 @@ import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TrainingMapper trainingMapper;
     private final ProfileGenerator profileGenerator;
     private final GymMetrics gymMetrics;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public TrainerDto create(TrainerDto dto) {
@@ -52,7 +54,7 @@ public class TrainerServiceImpl implements TrainerService {
         candidateUsernames.addAll(traineeRepository.findUsernamesStartingWith(prefix));
 
         String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), candidateUsernames);
-        String password = profileGenerator.generatePassword();
+        String rawPassword = profileGenerator.generatePassword();
 
         TrainingType specialization = trainingTypeRepository.findByName(dto.getSpecialization())
                 .orElseThrow(() -> new EntityNotFoundException("TrainingType not found: " + dto.getSpecialization()));
@@ -61,7 +63,7 @@ public class TrainerServiceImpl implements TrainerService {
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .username(username)
-                .password(password)
+                .password(passwordEncoder.encode(rawPassword))
                 .isActive(true)
                 .specialization(specialization)
                 .build();
@@ -69,14 +71,18 @@ public class TrainerServiceImpl implements TrainerService {
         Trainer saved = trainerRepository.save(trainer);
         gymMetrics.incrementTrainerRegistrations();
         log.info("Trainer created: username={}", username);
-        return trainerMapper.toDto(saved);
+        TrainerDto savedDto = trainerMapper.toDto(saved);
+        savedDto.getCredentials().setPassword(rawPassword);
+        return savedDto;
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean matchCredentials(String username, String password) {
         log.info("Matching credentials for trainer: username={}", username);
-        return trainerRepository.matchCredentials(username, password);
+        return trainerRepository.findByUsername(username)
+                .map(it -> passwordEncoder.matches(password, it.getPassword()))
+                .orElse(false);
     }
 
     @Override
@@ -94,10 +100,10 @@ public class TrainerServiceImpl implements TrainerService {
     @Override
     public void changePassword(String username, String oldPassword, String newPassword) {
         log.info("Changing password for trainer: username={}", username);
-        if (!trainerRepository.matchCredentials(username, oldPassword)) {
+        if (!matchCredentials(username, oldPassword)) {
             throw new InvalidCredentialsException("Invalid credentials for trainer: " + username);
         }
-        trainerRepository.changePassword(username, newPassword);
+        trainerRepository.changePassword(username, passwordEncoder.encode(newPassword));
     }
 
     @Override
