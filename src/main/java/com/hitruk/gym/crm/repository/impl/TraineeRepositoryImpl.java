@@ -5,10 +5,10 @@ import com.hitruk.gym.crm.repository.TraineeRepository;
 import com.hitruk.gym.crm.entity.Trainee;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.Training;
-import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -16,12 +16,19 @@ import java.util.*;
 
 @Repository
 @Slf4j
-@RequiredArgsConstructor
 public class TraineeRepositoryImpl implements TraineeRepository {
-    private final SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    TraineeRepositoryImpl() {
+    }
+
+    public TraineeRepositoryImpl(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     private Session session() {
-        return sessionFactory.getCurrentSession();
+        return entityManager.unwrap(Session.class);
     }
 
     @Override
@@ -140,6 +147,14 @@ public class TraineeRepositoryImpl implements TraineeRepository {
                 .setParameter("lastName", lastName)
                 .uniqueResult();
         return count != null && count > 0;
+    }
+
+    @Override
+    public long countActive() {
+        Long count = session()
+                .createQuery("SELECT COUNT(t) FROM Trainee t WHERE t.isActive = true", Long.class)
+                .uniqueResult();
+        return count == null ? 0 : count;
     }
 
     private static String escapeLike(String value) {

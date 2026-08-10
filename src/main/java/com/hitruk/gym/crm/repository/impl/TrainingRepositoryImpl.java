@@ -2,20 +2,27 @@ package com.hitruk.gym.crm.repository.impl;
 
 import com.hitruk.gym.crm.repository.TrainingRepository;
 import com.hitruk.gym.crm.entity.Training;
-import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
 @Repository
 @Slf4j
-@RequiredArgsConstructor
 public class TrainingRepositoryImpl implements TrainingRepository {
-    private final SessionFactory sessionFactory;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    TrainingRepositoryImpl() {
+    }
+
+    public TrainingRepositoryImpl(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     private Session session() {
-        return sessionFactory.getCurrentSession();
+        return entityManager.unwrap(Session.class);
     }
 
     @Override

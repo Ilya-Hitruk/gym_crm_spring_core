@@ -3,8 +3,8 @@ package com.hitruk.gym.crm.repository;
 import com.hitruk.gym.crm.repository.impl.TrainerRepositoryImpl;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.TrainingType;
+import jakarta.persistence.EntityManager;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.*;
 class TrainerRepositoryTest {
 
     @Mock
-    private SessionFactory sessionFactory;
+    private EntityManager entityManager;
     @Mock
     private Session session;
     @Mock
@@ -36,8 +36,8 @@ class TrainerRepositoryTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
-        dao = new TrainerRepositoryImpl(sessionFactory);
+        when(entityManager.unwrap(Session.class)).thenReturn(session);
+        dao = new TrainerRepositoryImpl(entityManager);
 
         TrainingType type = TrainingType.builder().id(1L).name("FITNESS").build();
         trainer = Trainer.builder()
@@ -152,5 +152,14 @@ class TrainerRepositoryTest {
         when(query.uniqueResult()).thenReturn(0L);
 
         assertFalse(dao.existsByFirstNameAndLastName("Nobody", "Nowhere"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void countActive_returnsCount() {
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.uniqueResult()).thenReturn(7L);
+
+        assertEquals(7L, dao.countActive());
     }
 }

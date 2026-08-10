@@ -14,6 +14,7 @@ import com.hitruk.gym.crm.api.dto.UserCredentials;
 import com.hitruk.gym.crm.entity.Trainee;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.TrainingType;
+import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,8 @@ class TrainerServiceImplTest {
     private TrainingMapper trainingMapper;
     @Mock
     private ProfileGenerator profileGenerator;
+    @Mock
+    private GymMetrics gymMetrics;
 
     @InjectMocks
     private TrainerServiceImpl service;
@@ -91,6 +94,7 @@ class TrainerServiceImplTest {
                         "securePass1".equals(t.getPassword()) &&
                         Boolean.TRUE.equals(t.getIsActive())
         ));
+        verify(gymMetrics).incrementTrainerRegistrations();
     }
 
     @Test

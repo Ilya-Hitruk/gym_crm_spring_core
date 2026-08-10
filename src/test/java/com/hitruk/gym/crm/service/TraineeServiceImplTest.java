@@ -15,6 +15,7 @@ import com.hitruk.gym.crm.api.dto.TrainingDto;
 import com.hitruk.gym.crm.entity.Trainee;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.Training;
+import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,8 @@ class TraineeServiceImplTest {
     private TrainingMapper trainingMapper;
     @Mock
     private ProfileGenerator profileGenerator;
+    @Mock
+    private GymMetrics gymMetrics;
 
     @InjectMocks
     private TraineeServiceImpl service;
@@ -89,6 +92,7 @@ class TraineeServiceImplTest {
                         "abc1234xyz".equals(t.getPassword()) &&
                         Boolean.TRUE.equals(t.getIsActive())
         ));
+        verify(gymMetrics).incrementTraineeRegistrations();
     }
 
     @Test

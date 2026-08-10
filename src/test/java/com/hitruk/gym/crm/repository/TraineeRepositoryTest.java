@@ -2,8 +2,8 @@ package com.hitruk.gym.crm.repository;
 
 import com.hitruk.gym.crm.repository.impl.TraineeRepositoryImpl;
 import com.hitruk.gym.crm.entity.Trainee;
+import jakarta.persistence.EntityManager;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TraineeRepositoryTest {
     @Mock
-    private SessionFactory sessionFactory;
+    private EntityManager entityManager;
     @Mock
     private Session session;
     @Mock
@@ -34,8 +34,8 @@ class TraineeRepositoryTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
-        dao = new TraineeRepositoryImpl(sessionFactory);
+        when(entityManager.unwrap(Session.class)).thenReturn(session);
+        dao = new TraineeRepositoryImpl(entityManager);
 
         trainee = Trainee.builder()
                 .id(1L).firstName("John").lastName("Smith")
@@ -138,5 +138,14 @@ class TraineeRepositoryTest {
         when(query.uniqueResult()).thenReturn(0L);
 
         assertFalse(dao.existsByFirstNameAndLastName("Nobody", "Nowhere"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void countActive_returnsCount() {
+        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
+        when(query.uniqueResult()).thenReturn(4L);
+
+        assertEquals(4L, dao.countActive());
     }
 }

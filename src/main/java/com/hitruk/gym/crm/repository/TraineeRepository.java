@@ -33,4 +33,6 @@ public interface TraineeRepository {
     List<String> findUsernamesStartingWith(String prefix);
 
     boolean existsByFirstNameAndLastName(String firstName, String lastName);
+
+    long countActive();
 }

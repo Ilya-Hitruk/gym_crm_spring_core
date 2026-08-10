@@ -14,6 +14,7 @@ import com.hitruk.gym.crm.repository.TrainingTypeRepository;
 import com.hitruk.gym.crm.api.dto.TrainerDto;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.TrainingType;
+import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class TrainerServiceImpl implements TrainerService {
     private final TraineeMapper traineeMapper;
     private final TrainingMapper trainingMapper;
     private final ProfileGenerator profileGenerator;
+    private final GymMetrics gymMetrics;
 
     @Override
     public TrainerDto create(TrainerDto dto) {
@@ -65,6 +67,7 @@ public class TrainerServiceImpl implements TrainerService {
                 .build();
 
         Trainer saved = trainerRepository.save(trainer);
+        gymMetrics.incrementTrainerRegistrations();
         log.info("Trainer created: username={}", username);
         return trainerMapper.toDto(saved);
     }

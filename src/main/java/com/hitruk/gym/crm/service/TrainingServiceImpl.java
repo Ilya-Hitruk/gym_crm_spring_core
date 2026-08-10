@@ -11,6 +11,7 @@ import com.hitruk.gym.crm.entity.Trainee;
 import com.hitruk.gym.crm.entity.Trainer;
 import com.hitruk.gym.crm.entity.Training;
 import com.hitruk.gym.crm.entity.TrainingType;
+import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class TrainingServiceImpl implements TrainingService {
     private final TrainerRepository trainerRepository;
     private final TrainingTypeRepository trainingTypeRepository;
     private final TrainingMapper trainingMapper;
+    private final GymMetrics gymMetrics;
 
     @Override
     public TrainingDto create(TrainingDto dto) {
@@ -50,6 +52,7 @@ public class TrainingServiceImpl implements TrainingService {
                 .build();
 
         Training saved = trainingRepository.save(training);
+        gymMetrics.incrementTrainingCreated();
         log.info("Training created: id={}, name={}", saved.getId(), saved.getName());
         return trainingMapper.toDto(saved);
     }
