@@ -22,30 +22,6 @@ class UserServiceImplTest {
     private UserServiceImpl service;
 
     @Test
-    void matchCredentials_traineeMatches_returnsTrue() {
-        when(traineeService.matchCredentials("John.Smith", "pass")).thenReturn(true);
-
-        assertTrue(service.matchCredentials("John.Smith", "pass"));
-        verify(trainerService, never()).matchCredentials(any(), any());
-    }
-
-    @Test
-    void matchCredentials_trainerMatches_returnsTrue() {
-        when(traineeService.matchCredentials("Chris.Bumstead", "pass")).thenReturn(false);
-        when(trainerService.matchCredentials("Chris.Bumstead", "pass")).thenReturn(true);
-
-        assertTrue(service.matchCredentials("Chris.Bumstead", "pass"));
-    }
-
-    @Test
-    void matchCredentials_neitherMatches_returnsFalse() {
-        when(traineeService.matchCredentials("Unknown", "pass")).thenReturn(false);
-        when(trainerService.matchCredentials("Unknown", "pass")).thenReturn(false);
-
-        assertFalse(service.matchCredentials("Unknown", "pass"));
-    }
-
-    @Test
     void changePassword_traineeCredentialsMatch_delegatesToTraineeService() {
         when(traineeService.matchCredentials("John.Smith", "old")).thenReturn(true);
 

@@ -6,9 +6,11 @@ import com.hitruk.gym.crm.api.dto.UserCredentials;
 import com.hitruk.gym.crm.api.dto.request.ActivateRequest;
 import com.hitruk.gym.crm.api.dto.request.TrainerRegistrationRequest;
 import com.hitruk.gym.crm.api.dto.request.UpdateTrainerRequest;
+import com.hitruk.gym.crm.api.dto.response.RegistrationResponse;
 import com.hitruk.gym.crm.api.dto.response.TraineeSummary;
 import com.hitruk.gym.crm.api.dto.response.TrainerProfileResponse;
 import com.hitruk.gym.crm.api.dto.response.TrainerTrainingResponse;
+import com.hitruk.gym.crm.security.JwtService;
 import com.hitruk.gym.crm.service.TrainerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -28,17 +30,22 @@ import java.util.List;
 @Tag(name = "Trainer", description = "Trainer management endpoints")
 public class TrainerRestController {
     private final TrainerService trainerService;
+    private final JwtService jwtService;
 
     @PostMapping
     @Operation(summary = "Register new trainer")
-    public ResponseEntity<UserCredentials> register(@Valid @RequestBody TrainerRegistrationRequest request) {
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody TrainerRegistrationRequest request) {
         TrainerDto dto = TrainerDto.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .specialization(request.getSpecialization())
                 .build();
         TrainerDto created = trainerService.create(dto);
-        return ResponseEntity.ok(created.getCredentials());
+        String token = jwtService.generateToken(created.getCredentials().getUsername());
+        return ResponseEntity.ok(new RegistrationResponse(
+                created.getCredentials().getUsername(),
+                created.getCredentials().getPassword(),
+                token));
     }
 
     @GetMapping("/{username}")

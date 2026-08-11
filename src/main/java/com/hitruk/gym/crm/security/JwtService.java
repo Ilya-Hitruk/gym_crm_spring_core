@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtService {
@@ -23,14 +24,19 @@ public class JwtService {
         this.expirationMs = expirationMs;
     }
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(String username) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(userDetails.getUsername())
+                .id(UUID.randomUUID().toString())
+                .subject(username)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMs)))
                 .signWith(key)
                 .compact();
+    }
+
+    public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails.getUsername());
     }
 
     public String extractUsername(String token) {
@@ -40,6 +46,14 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         String username = extractUsername(token);
         return username.equals(userDetails.getUsername()) && !isExpired(token);
+    }
+
+    public String extractJti(String token) {
+        return parseClaims(token).getId();
+    }
+
+    public Date extractExpiration(String token) {
+        return parseClaims(token).getExpiration();
     }
 
     private boolean isExpired(String token) {

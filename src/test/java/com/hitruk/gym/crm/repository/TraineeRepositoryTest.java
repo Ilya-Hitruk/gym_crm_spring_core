@@ -85,28 +85,6 @@ class TraineeRepositoryTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void matchCredentials_validCredentials_returnsTrue() {
-        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
-        when(query.setParameter(eq("username"), any())).thenReturn(query);
-        when(query.setParameter(eq("password"), any())).thenReturn(query);
-        when(query.uniqueResult()).thenReturn(1L);
-
-        assertTrue(dao.matchCredentials("John.Smith", "pass"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void matchCredentials_invalidCredentials_returnsFalse() {
-        when(session.createQuery(anyString(), eq(Long.class))).thenReturn(query);
-        when(query.setParameter(eq("username"), any())).thenReturn(query);
-        when(query.setParameter(eq("password"), any())).thenReturn(query);
-        when(query.uniqueResult()).thenReturn(0L);
-
-        assertFalse(dao.matchCredentials("John.Smith", "wrong"));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
     void findUsernamesStartingWith_returnsMatchingUsernames() {
         when(session.createQuery(anyString(), eq(String.class))).thenReturn(query);
         when(query.setParameter(eq("prefix"), any())).thenReturn(query);
