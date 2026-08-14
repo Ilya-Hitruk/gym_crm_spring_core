@@ -32,6 +32,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageResponse.of("Invalid username or password"));
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<MessageResponse> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(MessageResponse.of("Access denied"));
+    }
+
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<MessageResponse> handleNotFound(EntityNotFoundException ex) {
         log.warn("Entity not found: {}", ex.getMessage());

@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -50,6 +51,7 @@ public class TrainerRestController {
 
     @GetMapping("/{username}")
     @Operation(summary = "Get trainer profile")
+    @PreAuthorize("hasRole('TRAINER')")
     public ResponseEntity<TrainerProfileResponse> getProfile(
             @Parameter(description = "Trainer username") @PathVariable String username) {
         TrainerDto trainer = trainerService.findByUsername(username);
@@ -59,6 +61,7 @@ public class TrainerRestController {
 
     @PutMapping("/{username}")
     @Operation(summary = "Update trainer profile")
+    @PreAuthorize("hasRole('TRAINER')")
     public ResponseEntity<TrainerProfileResponse> updateProfile(
             @Parameter(description = "Trainer username") @PathVariable String username,
             @Valid @RequestBody UpdateTrainerRequest request) {
@@ -75,6 +78,7 @@ public class TrainerRestController {
 
     @GetMapping("/{username}/trainings")
     @Operation(summary = "Get trainer's trainings with optional filters")
+    @PreAuthorize("hasRole('TRAINER')")
     public ResponseEntity<List<TrainerTrainingResponse>> getTrainings(
             @Parameter(description = "Trainer username") @PathVariable String username,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodFrom,
@@ -96,6 +100,7 @@ public class TrainerRestController {
 
     @PatchMapping("/{username}/active")
     @Operation(summary = "Activate or deactivate trainer")
+    @PreAuthorize("hasRole('TRAINER')")
     public ResponseEntity<Void> setActive(
             @Parameter(description = "Trainer username") @PathVariable String username,
             @Valid @RequestBody ActivateRequest request) {

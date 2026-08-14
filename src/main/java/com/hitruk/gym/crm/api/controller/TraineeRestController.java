@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -52,6 +53,7 @@ public class TraineeRestController {
 
     @GetMapping("/{username}")
     @Operation(summary = "Get trainee profile")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<TraineeProfileResponse> getProfile(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         return ResponseEntity.ok(buildProfileResponse(traineeService.findByUsername(username)));
@@ -59,6 +61,7 @@ public class TraineeRestController {
 
     @PutMapping("/{username}")
     @Operation(summary = "Update trainee profile")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<TraineeProfileResponse> updateProfile(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody UpdateTraineeRequest request) {
@@ -75,6 +78,7 @@ public class TraineeRestController {
 
     @DeleteMapping("/{username}")
     @Operation(summary = "Delete trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<Void> delete(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         traineeService.deleteByUsername(username);
@@ -83,6 +87,7 @@ public class TraineeRestController {
 
     @GetMapping("/{username}/trainers/unassigned")
     @Operation(summary = "Get unassigned active trainers for trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TrainerSummary>> getUnassignedTrainers(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         return ResponseEntity.ok(traineeService.getUnassignedTrainers(username));
@@ -90,6 +95,7 @@ public class TraineeRestController {
 
     @PutMapping("/{username}/trainers")
     @Operation(summary = "Update trainee's trainer list")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TrainerSummary>> updateTrainers(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody UpdateTraineeTrainersRequest request) {
@@ -98,6 +104,7 @@ public class TraineeRestController {
 
     @GetMapping("/{username}/trainings")
     @Operation(summary = "Get trainee's trainings with optional filters")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TraineeTrainingResponse>> getTrainings(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodFrom,
@@ -120,6 +127,7 @@ public class TraineeRestController {
 
     @PatchMapping("/{username}/active")
     @Operation(summary = "Activate or deactivate trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<Void> setActive(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody ActivateRequest request) {
