@@ -53,18 +53,6 @@ public class TrainerRepositoryImpl implements TrainerRepository {
     }
 
     @Override
-    public boolean matchCredentials(String username, String password) {
-        Long count = session()
-                .createQuery(
-                        "SELECT COUNT(t) FROM Trainer t WHERE t.username = :username AND t.password = :password",
-                        Long.class)
-                .setParameter("username", username)
-                .setParameter("password", password)
-                .uniqueResult();
-        return count != null && count > 0;
-    }
-
-    @Override
     public void changePassword(String username, String newPassword) {
         Trainer trainer = findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("Trainer not found: " + username));

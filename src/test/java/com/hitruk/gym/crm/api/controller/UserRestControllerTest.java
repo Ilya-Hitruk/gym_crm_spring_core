@@ -16,8 +16,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,26 +40,6 @@ class UserRestControllerTest {
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
                 .setValidator(validator)
                 .build();
-    }
-
-    @Test
-    void login_validCredentials_returns200() throws Exception {
-        when(userService.matchCredentials("user", "pass")).thenReturn(true);
-
-        mockMvc.perform(get("/api/v1/users/login")
-                        .param("username", "user")
-                        .param("password", "pass"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void login_invalidCredentials_returns401() throws Exception {
-        when(userService.matchCredentials("user", "wrong")).thenReturn(false);
-
-        mockMvc.perform(get("/api/v1/users/login")
-                        .param("username", "user")
-                        .param("password", "wrong"))
-                .andExpect(status().isUnauthorized());
     }
 
     @Test

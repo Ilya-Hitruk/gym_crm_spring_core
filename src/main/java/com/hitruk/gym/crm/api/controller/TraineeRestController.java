@@ -5,9 +5,11 @@ import com.hitruk.gym.crm.api.dto.request.ActivateRequest;
 import com.hitruk.gym.crm.api.dto.request.TraineeRegistrationRequest;
 import com.hitruk.gym.crm.api.dto.request.UpdateTraineeRequest;
 import com.hitruk.gym.crm.api.dto.request.UpdateTraineeTrainersRequest;
+import com.hitruk.gym.crm.api.dto.response.RegistrationResponse;
 import com.hitruk.gym.crm.api.dto.response.TraineeProfileResponse;
 import com.hitruk.gym.crm.api.dto.response.TraineeTrainingResponse;
 import com.hitruk.gym.crm.api.dto.response.TrainerSummary;
+import com.hitruk.gym.crm.security.JwtService;
 import com.hitruk.gym.crm.service.TraineeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +18,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -27,10 +30,11 @@ import java.util.List;
 @Tag(name = "Trainee", description = "Trainee management endpoints")
 public class TraineeRestController {
     private final TraineeService traineeService;
+    private final JwtService jwtService;
 
     @PostMapping
     @Operation(summary = "Register new trainee")
-    public ResponseEntity<UserCredentials> register(@Valid @RequestBody TraineeRegistrationRequest request) {
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody TraineeRegistrationRequest request) {
         TraineeDto dto = TraineeDto.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -38,11 +42,18 @@ public class TraineeRestController {
                 .address(request.getAddress())
                 .build();
         TraineeDto created = traineeService.create(dto);
-        return ResponseEntity.ok(created.getCredentials());
+
+        String token = jwtService.generateToken(created.getCredentials().getUsername());
+
+        return ResponseEntity.ok(new RegistrationResponse(
+                created.getCredentials().getUsername(),
+                created.getCredentials().getPassword(),
+                token));
     }
 
     @GetMapping("/{username}")
     @Operation(summary = "Get trainee profile")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<TraineeProfileResponse> getProfile(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         return ResponseEntity.ok(buildProfileResponse(traineeService.findByUsername(username)));
@@ -50,6 +61,7 @@ public class TraineeRestController {
 
     @PutMapping("/{username}")
     @Operation(summary = "Update trainee profile")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<TraineeProfileResponse> updateProfile(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody UpdateTraineeRequest request) {
@@ -66,6 +78,7 @@ public class TraineeRestController {
 
     @DeleteMapping("/{username}")
     @Operation(summary = "Delete trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<Void> delete(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         traineeService.deleteByUsername(username);
@@ -74,6 +87,7 @@ public class TraineeRestController {
 
     @GetMapping("/{username}/trainers/unassigned")
     @Operation(summary = "Get unassigned active trainers for trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TrainerSummary>> getUnassignedTrainers(
             @Parameter(description = "Trainee username") @PathVariable String username) {
         return ResponseEntity.ok(traineeService.getUnassignedTrainers(username));
@@ -81,6 +95,7 @@ public class TraineeRestController {
 
     @PutMapping("/{username}/trainers")
     @Operation(summary = "Update trainee's trainer list")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TrainerSummary>> updateTrainers(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody UpdateTraineeTrainersRequest request) {
@@ -89,6 +104,7 @@ public class TraineeRestController {
 
     @GetMapping("/{username}/trainings")
     @Operation(summary = "Get trainee's trainings with optional filters")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<List<TraineeTrainingResponse>> getTrainings(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periodFrom,
@@ -111,6 +127,7 @@ public class TraineeRestController {
 
     @PatchMapping("/{username}/active")
     @Operation(summary = "Activate or deactivate trainee")
+    @PreAuthorize("hasRole('TRAINEE')")
     public ResponseEntity<Void> setActive(
             @Parameter(description = "Trainee username") @PathVariable String username,
             @Valid @RequestBody ActivateRequest request) {

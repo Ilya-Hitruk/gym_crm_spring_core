@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -50,6 +51,8 @@ class TraineeServiceImplTest {
     private ProfileGenerator profileGenerator;
     @Mock
     private GymMetrics gymMetrics;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TraineeServiceImpl service;
@@ -80,16 +83,18 @@ class TraineeServiceImplTest {
         when(trainerRepository.findUsernamesStartingWith("Jane.Doe")).thenReturn(List.of());
         when(profileGenerator.generateUsername(eq("Jane"), eq("Doe"), anyList())).thenReturn("Jane.Doe");
         when(profileGenerator.generatePassword()).thenReturn("abc1234xyz");
+        when(passwordEncoder.encode("abc1234xyz")).thenReturn("encoded-abc1234xyz");
         when(traineeRepository.save(any(Trainee.class))).thenReturn(trainee);
         when(traineeMapper.toDto(trainee)).thenReturn(traineeDto);
 
         TraineeDto result = service.create(input);
 
         assertNotNull(result);
+        assertEquals("abc1234xyz", result.getCredentials().getPassword());
         verify(profileGenerator).generatePassword();
         verify(traineeRepository).save(argThat(t ->
                 "Jane.Doe".equals(t.getUsername()) &&
-                        "abc1234xyz".equals(t.getPassword()) &&
+                        "encoded-abc1234xyz".equals(t.getPassword()) &&
                         Boolean.TRUE.equals(t.getIsActive())
         ));
         verify(gymMetrics).incrementTraineeRegistrations();
@@ -125,16 +130,25 @@ class TraineeServiceImplTest {
 
     @Test
     void matchCredentials_delegatesToDao() {
-        when(traineeRepository.matchCredentials("John.Smith", "pass123456")).thenReturn(true);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(passwordEncoder.matches("pass123456", trainee.getPassword())).thenReturn(true);
 
         assertTrue(service.matchCredentials("John.Smith", "pass123456"));
     }
 
     @Test
     void matchCredentials_invalidCredentials_returnsFalse() {
-        when(traineeRepository.matchCredentials("John.Smith", "wrongpass")).thenReturn(false);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(passwordEncoder.matches("wrongpass", trainee.getPassword())).thenReturn(false);
 
         assertFalse(service.matchCredentials("John.Smith", "wrongpass"));
+    }
+
+    @Test
+    void matchCredentials_unknownUsername_returnsFalse() {
+        when(traineeRepository.findByUsername("Unknown")).thenReturn(Optional.empty());
+
+        assertFalse(service.matchCredentials("Unknown", "whatever"));
     }
 
     @Test
@@ -157,16 +171,19 @@ class TraineeServiceImplTest {
 
     @Test
     void changePassword_validOldPassword_delegatesChange() {
-        when(traineeRepository.matchCredentials("John.Smith", "pass123456")).thenReturn(true);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(passwordEncoder.matches("pass123456", trainee.getPassword())).thenReturn(true);
+        when(passwordEncoder.encode("newPass99")).thenReturn("encoded-newPass99");
 
         service.changePassword("John.Smith", "pass123456", "newPass99");
 
-        verify(traineeRepository).changePassword("John.Smith", "newPass99");
+        verify(traineeRepository).changePassword("John.Smith", "encoded-newPass99");
     }
 
     @Test
     void changePassword_invalidOldPassword_throwsInvalidCredentialsException() {
-        when(traineeRepository.matchCredentials("John.Smith", "wrongOld")).thenReturn(false);
+        when(traineeRepository.findByUsername("John.Smith")).thenReturn(Optional.of(trainee));
+        when(passwordEncoder.matches("wrongOld", trainee.getPassword())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class,
                 () -> service.changePassword("John.Smith", "wrongOld", "newPass"));

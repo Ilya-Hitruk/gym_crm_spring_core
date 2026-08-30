@@ -14,8 +14,6 @@ public interface TrainerRepository {
 
     Trainer update(Trainer trainer);
 
-    boolean matchCredentials(String username, String password);
-
     void changePassword(String username, String newPassword);
 
     void setActive(String username, boolean isActive);

@@ -17,8 +17,6 @@ public interface TraineeRepository {
 
     void deleteByUsername(String username);
 
-    boolean matchCredentials(String username, String password);
-
     void changePassword(String username, String newPassword);
 
     void setActive(String username, boolean isActive);

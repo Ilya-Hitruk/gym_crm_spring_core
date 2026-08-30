@@ -11,6 +11,7 @@ import com.hitruk.gym.crm.api.dto.request.TraineeRegistrationRequest;
 import com.hitruk.gym.crm.api.dto.request.UpdateTraineeRequest;
 import com.hitruk.gym.crm.api.dto.request.UpdateTraineeTrainersRequest;
 import com.hitruk.gym.crm.api.dto.response.TrainerSummary;
+import com.hitruk.gym.crm.security.JwtService;
 import com.hitruk.gym.crm.service.TraineeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,8 @@ class TraineeRestControllerTest {
 
     @Mock
     private TraineeService traineeService;
+    @Mock
+    private JwtService jwtService;
 
     @InjectMocks
     private TraineeRestController controller;
@@ -67,13 +70,15 @@ class TraineeRestControllerTest {
                 TraineeDto.builder()
                         .credentials(UserCredentials.of("John.Doe", "pass123"))
                         .build());
+        when(jwtService.generateToken("John.Doe")).thenReturn("mock-token");
 
         mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(mapper.writeValueAsString(new TraineeRegistrationRequest("John", "Doe", null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("John.Doe"))
-                .andExpect(jsonPath("$.password").value("pass123"));
+                .andExpect(jsonPath("$.password").value("pass123"))
+                .andExpect(jsonPath("$.token").value("mock-token"));
     }
 
     @Test

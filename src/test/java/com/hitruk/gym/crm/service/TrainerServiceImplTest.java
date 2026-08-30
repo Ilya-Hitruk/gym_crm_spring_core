@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -49,6 +50,8 @@ class TrainerServiceImplTest {
     private ProfileGenerator profileGenerator;
     @Mock
     private GymMetrics gymMetrics;
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private TrainerServiceImpl service;
@@ -82,6 +85,7 @@ class TrainerServiceImplTest {
         when(profileGenerator.generateUsername(eq("Arnold"), eq("Schwarzenegger"), anyList()))
                 .thenReturn("Arnold.Schwarzenegger");
         when(profileGenerator.generatePassword()).thenReturn("securePass1");
+        when(passwordEncoder.encode("securePass1")).thenReturn("encoded-securePass1");
         when(trainingTypeRepository.findByName("FITNESS")).thenReturn(Optional.of(trainingType));
         when(trainerRepository.save(any(Trainer.class))).thenReturn(trainer);
         when(trainerMapper.toDto(trainer)).thenReturn(trainerDto);
@@ -89,9 +93,10 @@ class TrainerServiceImplTest {
         TrainerDto result = service.create(input);
 
         assertNotNull(result);
+        assertEquals("securePass1", result.getCredentials().getPassword());
         verify(trainerRepository).save(argThat(t ->
                 "Arnold.Schwarzenegger".equals(t.getUsername()) &&
-                        "securePass1".equals(t.getPassword()) &&
+                        "encoded-securePass1".equals(t.getPassword()) &&
                         Boolean.TRUE.equals(t.getIsActive())
         ));
         verify(gymMetrics).incrementTrainerRegistrations();
@@ -146,9 +151,17 @@ class TrainerServiceImplTest {
 
     @Test
     void matchCredentials_delegatesToDao() {
-        when(trainerRepository.matchCredentials("Chris.Bumstead", "pass123456")).thenReturn(true);
+        when(trainerRepository.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(passwordEncoder.matches("pass123456", trainer.getPassword())).thenReturn(true);
 
         assertTrue(service.matchCredentials("Chris.Bumstead", "pass123456"));
+    }
+
+    @Test
+    void matchCredentials_unknownUsername_returnsFalse() {
+        when(trainerRepository.findByUsername("Unknown")).thenReturn(Optional.empty());
+
+        assertFalse(service.matchCredentials("Unknown", "whatever"));
     }
 
     @Test
@@ -170,16 +183,19 @@ class TrainerServiceImplTest {
 
     @Test
     void changePassword_validCredentials_delegatesChange() {
-        when(trainerRepository.matchCredentials("Chris.Bumstead", "pass123456")).thenReturn(true);
+        when(trainerRepository.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(passwordEncoder.matches("pass123456", trainer.getPassword())).thenReturn(true);
+        when(passwordEncoder.encode("newPass99")).thenReturn("encoded-newPass99");
 
         service.changePassword("Chris.Bumstead", "pass123456", "newPass99");
 
-        verify(trainerRepository).changePassword("Chris.Bumstead", "newPass99");
+        verify(trainerRepository).changePassword("Chris.Bumstead", "encoded-newPass99");
     }
 
     @Test
     void changePassword_invalidCredentials_throwsInvalidCredentialsException() {
-        when(trainerRepository.matchCredentials("Chris.Bumstead", "wrong")).thenReturn(false);
+        when(trainerRepository.findByUsername("Chris.Bumstead")).thenReturn(Optional.of(trainer));
+        when(passwordEncoder.matches("wrong", trainer.getPassword())).thenReturn(false);
 
         assertThrows(InvalidCredentialsException.class,
                 () -> service.changePassword("Chris.Bumstead", "wrong", "newPass"));

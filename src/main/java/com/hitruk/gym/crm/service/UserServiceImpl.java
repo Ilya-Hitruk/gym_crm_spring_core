@@ -14,12 +14,6 @@ public class UserServiceImpl implements UserService {
     private final TrainerService trainerService;
 
     @Override
-    public boolean matchCredentials(String username, String password) {
-        return traineeService.matchCredentials(username, password)
-                || trainerService.matchCredentials(username, password);
-    }
-
-    @Override
     public void changePassword(String username, String oldPassword, String newPassword) {
         if (traineeService.matchCredentials(username, oldPassword)) {
             traineeService.changePassword(username, oldPassword, newPassword);

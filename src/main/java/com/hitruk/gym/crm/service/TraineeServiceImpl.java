@@ -16,6 +16,7 @@ import com.hitruk.gym.crm.monitoring.metrics.GymMetrics;
 import com.hitruk.gym.crm.util.ProfileGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class TraineeServiceImpl implements TraineeService {
     private final TrainingMapper trainingMapper;
     private final ProfileGenerator profileGenerator;
     private final GymMetrics gymMetrics;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public TraineeDto create(TraineeDto dto) {
@@ -49,13 +51,13 @@ public class TraineeServiceImpl implements TraineeService {
         candidateUsernames.addAll(trainerRepository.findUsernamesStartingWith(prefix));
 
         String username = profileGenerator.generateUsername(dto.getFirstName(), dto.getLastName(), candidateUsernames);
-        String password = profileGenerator.generatePassword();
+        String rawPassword = profileGenerator.generatePassword();
 
         Trainee trainee = Trainee.builder()
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .username(username)
-                .password(password)
+                .password(passwordEncoder.encode(rawPassword))
                 .isActive(true)
                 .dateOfBirth(dto.getDateOfBirth())
                 .address(dto.getAddress())
@@ -64,14 +66,18 @@ public class TraineeServiceImpl implements TraineeService {
         Trainee saved = traineeRepository.save(trainee);
         gymMetrics.incrementTraineeRegistrations();
         log.info("Trainee created: username={}", username);
-        return traineeMapper.toDto(saved);
+        TraineeDto savedDto = traineeMapper.toDto(saved);
+        savedDto.getCredentials().setPassword(rawPassword);
+        return savedDto;
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean matchCredentials(String username, String password) {
         log.info("Matching credentials for trainee: username={}", username);
-        return traineeRepository.matchCredentials(username, password);
+        return traineeRepository.findByUsername(username)
+                .map(it -> passwordEncoder.matches(password, it.getPassword()))
+                .orElse(false);
     }
 
     @Override
@@ -89,10 +95,10 @@ public class TraineeServiceImpl implements TraineeService {
     @Override
     public void changePassword(String username, String oldPassword, String newPassword) {
         log.info("Changing password for trainee: username={}", username);
-        if (!traineeRepository.matchCredentials(username, oldPassword)) {
+        if (!matchCredentials(username, oldPassword)) {
             throw new InvalidCredentialsException("Invalid credentials for trainee: " + username);
         }
-        traineeRepository.changePassword(username, newPassword);
+        traineeRepository.changePassword(username, passwordEncoder.encode(newPassword));
     }
 
     @Override

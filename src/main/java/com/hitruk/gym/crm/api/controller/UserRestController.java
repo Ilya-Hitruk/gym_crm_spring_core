@@ -16,15 +16,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserRestController {
     private final UserService userService;
 
-    @GetMapping("/login")
-    @Operation(summary = "Login with username and password")
-    public ResponseEntity<Void> login(@RequestParam String username, @RequestParam String password) {
-        if (userService.matchCredentials(username, password)) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.status(401).build();
-    }
-
     @PutMapping("/login")
     @Operation(summary = "Change user password")
     public ResponseEntity<Void> changeLogin(@Valid @RequestBody ChangePasswordRequest request) {

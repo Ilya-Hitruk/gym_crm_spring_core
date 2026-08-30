@@ -7,6 +7,7 @@ import com.hitruk.gym.crm.exception.InvalidCredentialsException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +18,25 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(org.springframework.security.authentication.LockedException.class)
+    public ResponseEntity<MessageResponse> handleLocked(org.springframework.security.authentication.LockedException ex) {
+        log.warn("Account locked: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.LOCKED)
+                .body(MessageResponse.of("Account is temporarily locked due to multiple failed login attempts. Try again later."));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<MessageResponse> handleAuthenticationException(AuthenticationException ex) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageResponse.of("Invalid username or password"));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<MessageResponse> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(MessageResponse.of("Access denied"));
+    }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<MessageResponse> handleNotFound(EntityNotFoundException ex) {
