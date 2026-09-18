@@ -9,6 +9,10 @@ spring:
       write-dates-as-timestamps: false
   activemq:
     broker-url: ${ACTIVEMQ_BROKER_URL:tcp://localhost:61616}
+  jms:
+    listener:
+      session:
+        transacted: true
   datasource:
     url: jdbc:h2:mem:workloaddb;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
