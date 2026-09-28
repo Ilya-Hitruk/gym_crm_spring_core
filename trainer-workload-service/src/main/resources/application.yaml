@@ -13,22 +13,10 @@ spring:
     listener:
       session:
         transacted: true
-  datasource:
-    url: jdbc:h2:mem:workloaddb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/trainer_workload_db}
+      auto-index-creation: true
 
 eureka:
   client:
