@@ -1,0 +1,14 @@
+spring:
+  activemq:
+    broker-url: vm://localhost?broker.persistent=false
+  jms:
+    listener:
+      session:
+        transacted: true
+
+eureka:
+  client:
+    enabled: false
+
+jwt:
+  secret: bn9ICmNW9efG/F/587MQ1JNlqio/LvmVe2iWH7ZZUVc=
