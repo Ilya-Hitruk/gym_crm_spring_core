@@ -3,9 +3,9 @@ package com.hitruk.gym.workload.service;
 import com.hitruk.gym.workload.api.dto.ActionType;
 import com.hitruk.gym.workload.api.dto.TrainerWorkloadRequest;
 import com.hitruk.gym.workload.api.dto.TrainerWorkloadSummaryResponse;
-import com.hitruk.gym.workload.entity.MonthSummary;
-import com.hitruk.gym.workload.entity.TrainerWorkload;
-import com.hitruk.gym.workload.entity.YearSummary;
+import com.hitruk.gym.workload.document.MonthSummary;
+import com.hitruk.gym.workload.document.TrainerWorkloadDocument;
+import com.hitruk.gym.workload.document.YearSummary;
 import com.hitruk.gym.workload.exception.TrainerWorkloadNotFoundException;
 import com.hitruk.gym.workload.repository.TrainerWorkloadRepository;
 import org.junit.jupiter.api.Test;
@@ -43,14 +43,14 @@ class TrainerWorkloadServiceImplTest {
                 .build();
     }
 
-    private TrainerWorkload existingWorkloadWithMonth(int year, int month, int duration) {
-        TrainerWorkload workload = TrainerWorkload.builder()
+    private TrainerWorkloadDocument existingWorkloadWithMonth(int year, int month, int duration) {
+        TrainerWorkloadDocument workload = TrainerWorkloadDocument.builder()
                 .username("Alex.Coach").firstName("Alex").lastName("Coach").isActive(true)
                 .build();
 
-        YearSummary yearSummary = YearSummary.builder().year(year).trainerWorkload(workload).build();
+        YearSummary yearSummary = YearSummary.builder().year(year).build();
         MonthSummary monthSummary = MonthSummary.builder()
-                .month(month).summaryDuration(duration).yearSummary(yearSummary).build();
+                .month(month).trainingsSummaryDuration(duration).build();
 
         yearSummary.getMonths().add(monthSummary);
         workload.getYears().add(yearSummary);
@@ -60,23 +60,23 @@ class TrainerWorkloadServiceImplTest {
     @Test
     void processWorkload_newTrainerAdd_createsWorkloadWithDuration() {
         when(trainerWorkloadRepository.findById("Alex.Coach")).thenReturn(Optional.empty());
-        ArgumentCaptor<TrainerWorkload> captor = ArgumentCaptor.forClass(TrainerWorkload.class);
+        ArgumentCaptor<TrainerWorkloadDocument> captor = ArgumentCaptor.forClass(TrainerWorkloadDocument.class);
         when(trainerWorkloadRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
 
         service.processWorkload(request(LocalDate.of(2026, 9, 1), 60, ActionType.ADD));
 
-        TrainerWorkload saved = captor.getValue();
+        TrainerWorkloadDocument saved = captor.getValue();
         assertEquals("Alex.Coach", saved.getUsername());
         assertEquals(1, saved.getYears().size());
         assertEquals(2026, saved.getYears().get(0).getYear());
         assertEquals(1, saved.getYears().get(0).getMonths().size());
         assertEquals(9, saved.getYears().get(0).getMonths().get(0).getMonth());
-        assertEquals(60, saved.getYears().get(0).getMonths().get(0).getSummaryDuration());
+        assertEquals(60, saved.getYears().get(0).getMonths().get(0).getTrainingsSummaryDuration());
     }
 
     @Test
     void processWorkload_secondAddSameMonth_accumulatesDuration() {
-        ArgumentCaptor<TrainerWorkload> captor = ArgumentCaptor.forClass(TrainerWorkload.class);
+        ArgumentCaptor<TrainerWorkloadDocument> captor = ArgumentCaptor.forClass(TrainerWorkloadDocument.class);
         when(trainerWorkloadRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
         when(trainerWorkloadRepository.findById("Alex.Coach"))
                 .thenReturn(Optional.empty())
@@ -85,15 +85,15 @@ class TrainerWorkloadServiceImplTest {
         service.processWorkload(request(LocalDate.of(2026, 9, 1), 60, ActionType.ADD));
         service.processWorkload(request(LocalDate.of(2026, 9, 15), 30, ActionType.ADD));
 
-        TrainerWorkload result = captor.getValue();
+        TrainerWorkloadDocument result = captor.getValue();
         assertEquals(1, result.getYears().size());
         assertEquals(1, result.getYears().get(0).getMonths().size());
-        assertEquals(90, result.getYears().get(0).getMonths().get(0).getSummaryDuration());
+        assertEquals(90, result.getYears().get(0).getMonths().get(0).getTrainingsSummaryDuration());
     }
 
     @Test
     void processWorkload_addDifferentMonths_createsSeparateEntries() {
-        ArgumentCaptor<TrainerWorkload> captor = ArgumentCaptor.forClass(TrainerWorkload.class);
+        ArgumentCaptor<TrainerWorkloadDocument> captor = ArgumentCaptor.forClass(TrainerWorkloadDocument.class);
         when(trainerWorkloadRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
         when(trainerWorkloadRepository.findById("Alex.Coach"))
                 .thenReturn(Optional.empty())
@@ -102,31 +102,31 @@ class TrainerWorkloadServiceImplTest {
         service.processWorkload(request(LocalDate.of(2026, 9, 1), 60, ActionType.ADD));
         service.processWorkload(request(LocalDate.of(2026, 10, 1), 45, ActionType.ADD));
 
-        TrainerWorkload result = captor.getValue();
+        TrainerWorkloadDocument result = captor.getValue();
         assertEquals(1, result.getYears().size());
         assertEquals(2, result.getYears().get(0).getMonths().size());
     }
 
     @Test
     void processWorkload_delete_subtractsDuration() {
-        TrainerWorkload existing = existingWorkloadWithMonth(2026, 9, 60);
+        TrainerWorkloadDocument existing = existingWorkloadWithMonth(2026, 9, 60);
         when(trainerWorkloadRepository.findById("Alex.Coach")).thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.processWorkload(request(LocalDate.of(2026, 9, 1), 20, ActionType.DELETE));
 
-        assertEquals(40, existing.getYears().get(0).getMonths().get(0).getSummaryDuration());
+        assertEquals(40, existing.getYears().get(0).getMonths().get(0).getTrainingsSummaryDuration());
     }
 
     @Test
     void processWorkload_deleteMoreThanAvailable_neverGoesBelowZero() {
-        TrainerWorkload existing = existingWorkloadWithMonth(2026, 9, 40);
+        TrainerWorkloadDocument existing = existingWorkloadWithMonth(2026, 9, 40);
         when(trainerWorkloadRepository.findById("Alex.Coach")).thenReturn(Optional.of(existing));
         when(trainerWorkloadRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.processWorkload(request(LocalDate.of(2026, 9, 1), 60, ActionType.DELETE));
 
-        assertEquals(0, existing.getYears().get(0).getMonths().get(0).getSummaryDuration());
+        assertEquals(0, existing.getYears().get(0).getMonths().get(0).getTrainingsSummaryDuration());
     }
 
     @Test
@@ -138,7 +138,7 @@ class TrainerWorkloadServiceImplTest {
 
     @Test
     void getSummary_knownTrainer_returnsMappedResponse() {
-        TrainerWorkload existing = existingWorkloadWithMonth(2026, 9, 60);
+        TrainerWorkloadDocument existing = existingWorkloadWithMonth(2026, 9, 60);
         when(trainerWorkloadRepository.findById("Alex.Coach")).thenReturn(Optional.of(existing));
 
         TrainerWorkloadSummaryResponse response = service.getSummary("Alex.Coach");

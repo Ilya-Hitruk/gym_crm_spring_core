@@ -1,13 +1,14 @@
 package com.hitruk.gym.workload.service;
 
 import com.hitruk.gym.workload.api.dto.*;
-import com.hitruk.gym.workload.entity.*;
+import com.hitruk.gym.workload.document.MonthSummary;
+import com.hitruk.gym.workload.document.TrainerWorkloadDocument;
+import com.hitruk.gym.workload.document.YearSummary;
 import com.hitruk.gym.workload.exception.TrainerWorkloadNotFoundException;
 import com.hitruk.gym.workload.repository.TrainerWorkloadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,15 +17,18 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@Transactional
 public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
 
     private final TrainerWorkloadRepository trainerWorkloadRepository;
 
     @Override
     public void processWorkload(TrainerWorkloadRequest request) {
-        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findById(request.getTrainerUsername())
-                .orElseGet(() -> TrainerWorkload.builder()
+        log.debug("Processing workload event: trainer={}, action={}, date={}, duration={}",
+                request.getTrainerUsername(), request.getActionType(), request.getTrainingDate(),
+                request.getTrainingDuration());
+
+        TrainerWorkloadDocument trainerWorkload = trainerWorkloadRepository.findById(request.getTrainerUsername())
+                .orElseGet(() -> TrainerWorkloadDocument.builder()
                         .username(request.getTrainerUsername())
                         .build());
 
@@ -40,31 +44,30 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
                 ? request.getTrainingDuration()
                 : -request.getTrainingDuration();
 
-        monthSummary.setSummaryDuration(Math.max(monthSummary.getSummaryDuration() + delta, 0));
+        monthSummary.setTrainingsSummaryDuration(Math.max(monthSummary.getTrainingsSummaryDuration() + delta, 0));
 
         trainerWorkloadRepository.save(trainerWorkload);
 
         log.info("Workload {} processed for trainer={}, {}-{}: durationDelta={} min, monthTotal={} min",
                 request.getActionType(), request.getTrainerUsername(), date.getYear(), date.getMonthValue(),
-                delta, monthSummary.getSummaryDuration());
+                delta, monthSummary.getTrainingsSummaryDuration());
     }
 
     @Override
     public TrainerWorkloadSummaryResponse getSummary(String username) {
-        TrainerWorkload trainerWorkload = trainerWorkloadRepository.findById(username)
+        log.debug("Fetching workload summary for trainer={}", username);
+
+        TrainerWorkloadDocument trainerWorkload = trainerWorkloadRepository.findById(username)
                 .orElseThrow(() -> new TrainerWorkloadNotFoundException("No workload data for trainer: " + username));
         return toDto(trainerWorkload);
     }
 
-    private YearSummary findOrCreateYear(TrainerWorkload trainerWorkload, int year) {
+    private YearSummary findOrCreateYear(TrainerWorkloadDocument trainerWorkload, int year) {
         return trainerWorkload.getYears().stream()
                 .filter(y -> y.getYear() == year)
                 .findFirst()
                 .orElseGet(() -> {
-                    YearSummary created = YearSummary.builder()
-                            .year(year)
-                            .trainerWorkload(trainerWorkload)
-                            .build();
+                    YearSummary created = YearSummary.builder().year(year).build();
                     trainerWorkload.getYears().add(created);
                     return created;
                 });
@@ -75,24 +78,20 @@ public class TrainerWorkloadServiceImpl implements TrainerWorkloadService {
                 .filter(m -> m.getMonth() == month)
                 .findFirst()
                 .orElseGet(() -> {
-                    MonthSummary created = MonthSummary.builder()
-                            .month(month)
-                            .summaryDuration(0)
-                            .yearSummary(yearSummary)
-                            .build();
+                    MonthSummary created = MonthSummary.builder().month(month).trainingsSummaryDuration(0).build();
                     yearSummary.getMonths().add(created);
                     return created;
                 });
     }
 
-    private TrainerWorkloadSummaryResponse toDto(TrainerWorkload trainerWorkload) {
+    private TrainerWorkloadSummaryResponse toDto(TrainerWorkloadDocument trainerWorkload) {
         List<YearSummaryDto> years = trainerWorkload.getYears().stream()
                 .map(y -> YearSummaryDto.builder()
                         .year(y.getYear())
                         .months(y.getMonths().stream()
                                 .map(m -> MonthSummaryDto.builder()
                                         .month(m.getMonth())
-                                        .summaryDuration(m.getSummaryDuration())
+                                        .summaryDuration(m.getTrainingsSummaryDuration())
                                         .build())
                                 .collect(Collectors.toList()))
                         .build())
